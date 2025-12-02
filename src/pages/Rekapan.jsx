@@ -9,7 +9,7 @@ import EditModal from '../components/EditModal';
 export default function Rekapan() {
   const [filter, setFilter] = useState('monthly');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [searchQuery, setSearchQuery] = useState(''); // State Search
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
@@ -42,11 +42,14 @@ export default function Rekapan() {
       end = format(endOfYear(targetDate), fmt);
     }
 
+    // UPDATE: Menambahkan .order('created_at') agar data mentah sudah urut waktu input
     const { data } = await supabase
       .from('transactions')
       .select('*, categories(name, type)')
       .gte('transaction_date', start)
-      .lte('transaction_date', end);
+      .lte('transaction_date', end)
+      .order('transaction_date', { ascending: false }) 
+      .order('created_at', { ascending: false }); // Prioritas kedua: Waktu input
 
     if (data) {
       setTransactions(data);
@@ -55,7 +58,7 @@ export default function Rekapan() {
     }
   };
 
-  // --- LOGIKA SEARCH + SORT ---
+  // --- LOGIKA SEARCH + SORT (DIPERBARUI) ---
   const processedTransactions = [...transactions]
     .filter((t) => {
       const query = searchQuery.toLowerCase();
@@ -77,9 +80,14 @@ export default function Rekapan() {
         bValue = Number(b.amount);
       }
 
+      // 1. Cek Sorting Utama (Sesuai kolom yang diklik)
       if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
+      
+      // 2. TIE-BREAKER (PEMECAH SERI)
+      // Jika nilainya sama (misal tanggal sama-sama hari ini),
+      // Urutkan berdasarkan ID secara Descending (ID Besar = Inputan Baru)
+      return b.id - a.id; 
     });
 
   const processSummary = (data) => {
@@ -195,10 +203,9 @@ export default function Rekapan() {
         onSuccess={fetchData} 
       />
 
-      {/* HEADER CONTROLLER (White Theme) */}
+      {/* HEADER CONTROLLER */}
       <div className="bg-white p-4 rounded-lg shadow mb-8 border border-gray-200">
         <div className="flex flex-col gap-4">
-          
           <div className="flex flex-col md:flex-row md:justify-between md:items-center">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Dashboard Visual</h2>
@@ -207,7 +214,6 @@ export default function Rekapan() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
-            {/* SEARCH BAR (Style Consistent) */}
             <div className="relative flex-grow">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -216,14 +222,13 @@ export default function Rekapan() {
               </div>
               <input 
                 type="text"
-                placeholder="Cari transaksi (Bakso, Skincare, dll)..."
+                placeholder="Cari transaksi..."
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            {/* TOMBOL EXPORT (Green for Excel context, but clean) */}
             <button
               onClick={handleExport}
               className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm whitespace-nowrap"
@@ -234,7 +239,6 @@ export default function Rekapan() {
               Excel
             </button>
 
-            {/* FILTERS */}
             <div className="flex gap-2">
               <select 
                 value={filter} onChange={(e) => setFilter(e.target.value)}
@@ -253,7 +257,7 @@ export default function Rekapan() {
         </div>
       </div>
 
-      {/* CARDS */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
         <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-green-500 p-5">
           <dt className="text-sm font-medium text-gray-500">Pemasukan</dt>
@@ -312,7 +316,7 @@ export default function Rekapan() {
         </div>
       )}
 
-      {/* TABEL TRANSAKSI (Modern Light Theme) */}
+      {/* TABEL TRANSAKSI */}
       <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-10">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
           <h3 className="text-lg leading-6 font-medium text-gray-900">
