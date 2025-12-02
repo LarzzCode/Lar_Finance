@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import toast from 'react-hot-toast';
+// IMPORT MODAL BARU
+import EditModal from '../components/EditModal';
 
 export default function Rekapan() {
   const [filter, setFilter] = useState('monthly');
@@ -11,9 +14,11 @@ export default function Rekapan() {
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
   const [chartData, setChartData] = useState([]);
   const [dailyData, setDailyData] = useState([]);
-
-  // STATE BARU: Konfigurasi Sorting
   const [sortConfig, setSortConfig] = useState({ key: 'transaction_date', direction: 'desc' });
+
+  // STATE UNTUK MODAL EDIT
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
 
@@ -42,7 +47,6 @@ export default function Rekapan() {
       .select('*, categories(name, type)')
       .gte('transaction_date', start)
       .lte('transaction_date', end);
-      // Kita hapus .order() dari database karena kita akan sorting di Client (React)
 
     if (data) {
       setTransactions(data);
@@ -85,46 +89,53 @@ export default function Rekapan() {
       return acc;
     }, {});
 
-    const barArray = Object.values(groupedDate).reverse(); // Sort by date for chart
+    const barArray = Object.values(groupedDate).reverse(); 
     setDailyData(barArray);
   };
 
-  // --- LOGIKA SORTING BARU ---
+  // --- LOGIKA DELETE ---
+  const handleDelete = async (id) => {
+    // Konfirmasi sederhana bawaan browser
+    if (window.confirm('Yakin ingin menghapus data ini?')) {
+      const { error } = await supabase.from('transactions').delete().eq('id', id);
+
+      if (error) {
+        toast.error('Gagal hapus: ' + error.message);
+      } else {
+        toast.success('Data berhasil dihapus');
+        fetchData(); // Refresh data agar tabel & grafik update otomatis
+      }
+    }
+  };
+
+  // --- LOGIKA BUKA EDIT MODAL ---
+  const handleEdit = (transaction) => {
+    setEditData(transaction); // Simpan data yg mau diedit
+    setIsEditOpen(true);      // Buka modal
+  };
+
   const handleSort = (key) => {
     let direction = 'asc';
-    // Jika klik kolom yang sama, balik arahnya (asc -> desc)
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
     setSortConfig({ key, direction });
   };
 
-  // Fungsi mengurutkan data transaksi sebelum di-render
   const sortedTransactions = [...transactions].sort((a, b) => {
     let aValue = a[sortConfig.key];
     let bValue = b[sortConfig.key];
-
-    // Handling khusus untuk nested object (Category Name)
     if (sortConfig.key === 'category') {
       aValue = a.categories?.name || '';
       bValue = b.categories?.name || '';
     }
-    // Handling khusus untuk Angka (Amount)
     if (sortConfig.key === 'amount') {
       aValue = Number(a.amount);
       bValue = Number(b.amount);
     }
-
-    if (aValue < bValue) {
-      return sortConfig.direction === 'asc' ? -1 : 1;
-    }
-    if (aValue > bValue) {
-      return sortConfig.direction === 'asc' ? 1 : -1;
-    }
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
 
-  // Helper untuk menampilkan Panah Indikator
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return <span className="text-gray-300 ml-1">↕</span>;
     return sortConfig.direction === 'asc' ? <span className="text-orange-500 ml-1">↑</span> : <span className="text-orange-500 ml-1">↓</span>;
@@ -154,6 +165,14 @@ export default function Rekapan() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
+      {/* PASANG MODAL EDIT DISINI */}
+      <EditModal 
+        isOpen={isEditOpen} 
+        onClose={() => setIsEditOpen(false)} 
+        transaction={editData}
+        onSuccess={fetchData} // Refresh data setelah update sukses
+      />
+
       {/* HEADER CONTROLLER */}
       <div className="bg-white p-4 rounded-lg shadow mb-8 border border-gray-200">
         <div className="md:flex md:items-center md:justify-between gap-4">
@@ -171,11 +190,8 @@ export default function Rekapan() {
               <option value="monthly">Per Bulan</option>
               <option value="yearly">Per Tahun</option>
             </select>
-
             <input 
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
               className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
             />
           </div>
@@ -209,25 +225,15 @@ export default function Rekapan() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
+                    data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                    {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                   </Pie>
                   <Tooltip formatter={(value) => rupiah(value)} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">Data Kosong</div>
-            )}
+            ) : (<div className="flex items-center justify-center h-full text-gray-400">Data Kosong</div>)}
           </div>
         </div>
 
@@ -246,14 +252,12 @@ export default function Rekapan() {
                   <Bar dataKey="expense" name="Keluar" fill="#EF4444" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-             ) : (
-               <div className="flex items-center justify-center h-full text-gray-400">Data Kosong</div>
-             )}
+             ) : (<div className="flex items-center justify-center h-full text-gray-400">Data Kosong</div>)}
           </div>
         </div>
       </div>
 
-      {/* TABEL TRANSAKSI (SORTABLE) */}
+      {/* TABEL TRANSAKSI */}
       <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-10">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
           <h3 className="text-lg leading-6 font-medium text-gray-900">Riwayat Transaksi</h3>
@@ -262,48 +266,33 @@ export default function Rekapan() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {/* HEADER YANG BISA DIKLIK */}
-                <th 
-                  onClick={() => handleSort('transaction_date')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                >
+                <th onClick={() => handleSort('transaction_date')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
                   Tanggal {getSortIcon('transaction_date')}
                 </th>
-                <th 
-                  onClick={() => handleSort('category')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                >
+                <th onClick={() => handleSort('category')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
                   Kategori {getSortIcon('category')}
                 </th>
-                <th 
-                  onClick={() => handleSort('description')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                >
+                <th onClick={() => handleSort('description')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
                   Deskripsi {getSortIcon('description')}
                 </th>
-                <th 
-                  onClick={() => handleSort('payment_method')}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                >
+                <th onClick={() => handleSort('payment_method')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
                   Metode {getSortIcon('payment_method')}
                 </th>
-                <th 
-                  onClick={() => handleSort('amount')}
-                  className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-                >
+                <th onClick={() => handleSort('amount')} className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
                   Nominal {getSortIcon('amount')}
+                </th>
+                {/* KOLOM AKSI */}
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Aksi
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedTransactions.length === 0 ? (
-                <tr>
-                   <td colSpan="5" className="px-6 py-10 text-center text-gray-500">Tidak ada transaksi di periode ini.</td>
-                </tr>
+                <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">Tidak ada transaksi di periode ini.</td></tr>
               ) : (
-                // MENGGUNAKAN sortedTransactions BUKAN transactions BIASA
                 sortedTransactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50">
+                  <tr key={t.id} className="hover:bg-gray-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(t.transaction_date)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getBadgeColor(t.categories?.type, t.categories?.name)}`}>
@@ -311,11 +300,33 @@ export default function Rekapan() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.description || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                      {t.payment_method || 'cash'}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{t.payment_method || 'cash'}</td>
                     <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${t.categories?.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                       {t.categories?.type === 'income' ? '+' : '-'} {rupiah(t.amount)}
+                    </td>
+                    
+                    {/* TOMBOL EDIT & DELETE */}
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleEdit(t)}
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 p-1.5 rounded-md hover:bg-blue-100 transition-colors"
+                          title="Edit"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(t.id)}
+                          className="text-red-600 hover:text-red-900 bg-red-50 p-1.5 rounded-md hover:bg-red-100 transition-colors"
+                          title="Hapus"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
