@@ -23,6 +23,9 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <Link to="/" className={linkClass('/')}>Input Data</Link>
             <Link to="/rekapan" className={linkClass('/rekapan')}>Rekapan</Link>
+            <Link to="/wallets" className={linkClass('/wallets')}>Wallets</Link>
+            <Link to="/budget" className={linkClass('/budget')}>Budget</Link>
+            
           </div>
         </div>
       </div>

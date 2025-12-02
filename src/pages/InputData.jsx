@@ -57,22 +57,25 @@ export default function InputData() {
 
   const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
   
-  // FIXED: Menambahkan 'w-full' dan 'min-w-0' agar tidak overflow di HP
-  const inputClass = "mt-1 block w-full min-w-0 rounded-xl border-gray-300 shadow-sm focus:ring-opacity-50 sm:text-sm p-3 border transition-all duration-200 outline-none font-medium text-gray-700 box-border";
+  // FIXED: Style Input yang lebih ketat
+  const inputClass = "mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:ring-opacity-50 sm:text-sm p-3 border transition-all duration-200 outline-none font-medium text-gray-700 box-border";
   const focusClass = type === 'income' ? 'focus:border-green-500 focus:ring-green-500' : 'focus:border-red-500 focus:ring-red-500';
 
   const subtleBounce = { scale: 1.01 }; 
   const subtleTap = { scale: 0.99 };
 
   return (
-    <div className={`min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 transition-colors duration-500 ${type === 'income' ? 'bg-green-50' : 'bg-red-50'}`}>
+    <div className={`min-h-[90vh] flex items-center justify-center py-12 px-2 sm:px-6 lg:px-8 transition-colors duration-500 ${type === 'income' ? 'bg-green-50' : 'bg-red-50'}`}>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }} 
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        // FIXED: Mengubah p-8 menjadi 'p-5 sm:p-8' agar padding di HP lebih kecil dan konten muat
-        className="max-w-md w-full space-y-6 sm:space-y-8 bg-white p-5 sm:p-8 rounded-3xl shadow-xl border border-white/50 relative overflow-hidden"
+        // FIXED: 
+        // 1. w-[90%] -> Memaksa lebar card hanya 90% layar HP (pasti muat)
+        // 2. sm:w-full -> Di layar besar kembali normal
+        // 3. overflow-hidden -> Memotong apapun yang mencoba keluar garis
+        className="max-w-md w-[90%] sm:w-full space-y-6 sm:space-y-8 bg-white p-5 sm:p-8 rounded-3xl shadow-xl border border-white/50 relative overflow-hidden mx-auto"
       >
         <div className={`absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-10 blur-3xl transition-colors duration-500 ${type === 'income' ? 'bg-green-400' : 'bg-red-400'}`}></div>
         <div className={`absolute -bottom-10 -left-10 w-40 h-40 rounded-full opacity-10 blur-3xl transition-colors duration-500 ${type === 'income' ? 'bg-emerald-400' : 'bg-orange-400'}`}></div>
@@ -109,7 +112,7 @@ export default function InputData() {
           </div>
         </div>
         
-        <form className="mt-8 space-y-5 relative z-10" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-5 relative z-10 w-full" onSubmit={handleSubmit}>
           
           {/* DATE INPUT FIXED */}
           <motion.div whileHover={subtleBounce} whileTap={subtleTap} className="relative cursor-pointer w-full">
@@ -120,8 +123,9 @@ export default function InputData() {
                 name="transaction_date" 
                 type="date" 
                 required 
-                // FIXED: Menambahkan max-w-full dan min-w-0 untuk mencegah overflow
-                className={`${inputClass} ${focusClass} pl-10 cursor-pointer w-full max-w-full`} 
+                // FIXED: Menambahkan style appearance none untuk iOS
+                style={{ WebkitAppearance: 'none', minWidth: '100%' }}
+                className={`${inputClass} ${focusClass} pl-10 cursor-pointer w-full`} 
                 value={formData.transaction_date} 
                 onChange={handleChange} 
               />
@@ -135,8 +139,8 @@ export default function InputData() {
 
           <motion.div whileHover={subtleBounce} whileTap={subtleTap}>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 ml-1">Kategori</label>
-            <div className="relative">
-              <select name="category_id" required className={`${inputClass} ${focusClass} appearance-none bg-white`} value={formData.category_id} onChange={handleChange}>
+            <div className="relative w-full">
+              <select name="category_id" required className={`${inputClass} ${focusClass} appearance-none bg-white w-full`} value={formData.category_id} onChange={handleChange}>
                 <option value="">-- Pilih Kategori --</option>
                 {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -148,26 +152,26 @@ export default function InputData() {
 
           <motion.div whileHover={subtleBounce} whileTap={subtleTap}>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 ml-1">Deskripsi</label>
-            <input name="description" type="text" placeholder="Keterangan..." className={`${inputClass} ${focusClass}`} value={formData.description} onChange={handleChange} />
+            <input name="description" type="text" placeholder="Keterangan..." className={`${inputClass} ${focusClass} w-full`} value={formData.description} onChange={handleChange} />
           </motion.div>
           
           <div className="grid grid-cols-2 gap-4">
             <motion.div whileHover={subtleBounce} whileTap={subtleTap}>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 ml-1">Metode</label>
-              <select name="payment_method" className={`${inputClass} ${focusClass} bg-white`} value={formData.payment_method} onChange={handleChange}>
-                <option value="cash">cash</option>
-                <option value="Tf mandiri">Tf mandiri</option>
-                <option value="Tf blu bca">Tf blu bca</option>
+              <select name="payment_method" className={`${inputClass} ${focusClass} bg-white w-full`} value={formData.payment_method} onChange={handleChange}>
+                <option value="cash">Cash</option>
+                <option value="Tf mandiri">Tf Mandiri</option>
+                <option value="Tf blu bca">Tf Blu BCA</option>
               </select>
             </motion.div>
 
             <motion.div whileHover={subtleBounce} whileTap={subtleTap}>
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 ml-1">Nominal</label>
-              <div className="relative">
+              <div className="relative w-full">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                   <span className={`font-bold sm:text-sm ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>Rp</span>
                 </div>
-                <input name="amount" type="number" required placeholder="0" className={`${inputClass} pl-10 font-bold ${focusClass}`} value={formData.amount} onChange={handleChange} />
+                <input name="amount" type="number" required placeholder="0" className={`${inputClass} pl-10 font-bold ${focusClass} w-full`} value={formData.amount} onChange={handleChange} />
               </div>
             </motion.div>
           </div>

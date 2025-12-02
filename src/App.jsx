@@ -4,6 +4,8 @@ import InputData from './pages/InputData';
 import Rekapan from './pages/Rekapan';
 // IMPORT TOASTER
 import { Toaster } from 'react-hot-toast';
+import Budgeting from './pages/Budgeting';
+import Wallets from './pages/Wallets';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
       <Routes>
         <Route path="/" element={<InputData />} />
         <Route path="/rekapan" element={<Rekapan />} />
+        <Route path="/wallets" element={<Wallets />} />
+        <Route path="/budget" element={<Budgeting />} />
       </Routes>
     </div>
   );
