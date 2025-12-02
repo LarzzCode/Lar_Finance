@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
-// IMPORT MODAL BARU
+// IMPORT LIBRARY EXCEL
+import * as XLSX from 'xlsx';
 import EditModal from '../components/EditModal';
 
 export default function Rekapan() {
@@ -16,7 +17,6 @@ export default function Rekapan() {
   const [dailyData, setDailyData] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'transaction_date', direction: 'desc' });
 
-  // STATE UNTUK MODAL EDIT
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
 
@@ -93,9 +93,48 @@ export default function Rekapan() {
     setDailyData(barArray);
   };
 
-  // --- LOGIKA DELETE ---
+  // --- FITUR BARU: EXPORT TO EXCEL ---
+  const handleExport = () => {
+    // 1. Format Data Sesuai Request (No, Date, Day, Description, Category, Payment, Nominal)
+    const dataToExport = sortedTransactions.map((t, index) => {
+      const dateObj = new Date(t.transaction_date);
+      // Mendapatkan Nama Hari Indonesia (Senin, Selasa...)
+      const dayName = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
+      
+      return {
+        'No': index + 1,
+        'Date': format(dateObj, 'dd/MM/yyyy'),
+        'Day': dayName,
+        'Description': t.description,
+        'Category': t.categories?.name,
+        'Payment': t.payment_method || 'Cash', // Default Cash
+        'Nominal': Number(t.amount) // Pastikan format angka
+      };
+    });
+
+    // 2. Buat Worksheet & Workbook
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Keuangan");
+
+    // 3. Atur Lebar Kolom (Biar Rapi)
+    worksheet['!cols'] = [
+      { wch: 5 },  // No
+      { wch: 12 }, // Date
+      { wch: 10 }, // Day
+      { wch: 30 }, // Description
+      { wch: 15 }, // Category
+      { wch: 15 }, // Payment
+      { wch: 15 }  // Nominal
+    ];
+
+    // 4. Download File
+    const fileName = `Laporan_Keuangan_${filter}_${selectedDate}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    toast.success('File Excel berhasil didownload!');
+  };
+
   const handleDelete = async (id) => {
-    // Konfirmasi sederhana bawaan browser
     if (window.confirm('Yakin ingin menghapus data ini?')) {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
 
@@ -103,15 +142,14 @@ export default function Rekapan() {
         toast.error('Gagal hapus: ' + error.message);
       } else {
         toast.success('Data berhasil dihapus');
-        fetchData(); // Refresh data agar tabel & grafik update otomatis
+        fetchData();
       }
     }
   };
 
-  // --- LOGIKA BUKA EDIT MODAL ---
   const handleEdit = (transaction) => {
-    setEditData(transaction); // Simpan data yg mau diedit
-    setIsEditOpen(true);      // Buka modal
+    setEditData(transaction);
+    setIsEditOpen(true);
   };
 
   const handleSort = (key) => {
@@ -165,26 +203,36 @@ export default function Rekapan() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
-      {/* PASANG MODAL EDIT DISINI */}
       <EditModal 
         isOpen={isEditOpen} 
         onClose={() => setIsEditOpen(false)} 
         transaction={editData}
-        onSuccess={fetchData} // Refresh data setelah update sukses
+        onSuccess={fetchData} 
       />
 
       {/* HEADER CONTROLLER */}
       <div className="bg-white p-4 rounded-lg shadow mb-8 border border-gray-200">
-        <div className="md:flex md:items-center md:justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Dashboard Visual</h2>
             <p className="text-sm text-gray-500 mt-1">{getPeriodLabel()}</p>
           </div>
           
-          <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* TOMBOL EXPORT EXCEL (BARU) */}
+            <button
+              onClick={handleExport}
+              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              Export Excel
+            </button>
+
             <select 
               value={filter} onChange={(e) => setFilter(e.target.value)}
-              className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+              className="block py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
             >
               <option value="weekly">Per Minggu</option>
               <option value="monthly">Per Bulan</option>
@@ -192,7 +240,7 @@ export default function Rekapan() {
             </select>
             <input 
               type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
-              className="block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+              className="block py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
             />
           </div>
         </div>
@@ -224,9 +272,7 @@ export default function Rekapan() {
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                  >
+                  <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                     {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                   </Pie>
                   <Tooltip formatter={(value) => rupiah(value)} />
@@ -281,7 +327,6 @@ export default function Rekapan() {
                 <th onClick={() => handleSort('amount')} className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
                   Nominal {getSortIcon('amount')}
                 </th>
-                {/* KOLOM AKSI */}
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Aksi
                 </th>
@@ -304,13 +349,11 @@ export default function Rekapan() {
                     <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${t.categories?.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                       {t.categories?.type === 'income' ? '+' : '-'} {rupiah(t.amount)}
                     </td>
-                    
-                    {/* TOMBOL EDIT & DELETE */}
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-2">
                         <button 
                           onClick={() => handleEdit(t)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 p-1.5 rounded-md hover:bg-blue-100 transition-colors"
+                          className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-lg transition-colors shadow-sm border border-blue-100"
                           title="Edit"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -319,7 +362,7 @@ export default function Rekapan() {
                         </button>
                         <button 
                           onClick={() => handleDelete(t.id)}
-                          className="text-red-600 hover:text-red-900 bg-red-50 p-1.5 rounded-md hover:bg-red-100 transition-colors"
+                          className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg transition-colors shadow-sm border border-red-100"
                           title="Hapus"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
