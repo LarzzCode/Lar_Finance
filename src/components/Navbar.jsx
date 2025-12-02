@@ -22,6 +22,7 @@ export default function Navbar() {
     { path: '/rekapan', label: 'Rekapan' },
     { path: '/wallets', label: 'Dompet' },
     { path: '/budget', label: 'Budget' },
+    { path: '/categories', label: 'Kategori' },
   ];
 
   return (

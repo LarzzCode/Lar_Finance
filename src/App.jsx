@@ -6,6 +6,7 @@ import Rekapan from './pages/Rekapan';
 import { Toaster } from 'react-hot-toast';
 import Budgeting from './pages/Budgeting';
 import Wallets from './pages/Wallets';
+import Categories from './pages/Categories';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/rekapan" element={<Rekapan />} />
         <Route path="/wallets" element={<Wallets />} />
         <Route path="/budget" element={<Budgeting />} />
+        <Route path="/categories" element={<Categories />} />
       </Routes>
     </div>
   );
