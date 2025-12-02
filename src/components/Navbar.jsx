@@ -17,7 +17,7 @@ export default function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <span className="text-2xl font-bold text-orange-600 tracking-tight">
-              LarFinance
+              LarrFinance
             </span>
           </div>
           <div className="flex items-center space-x-4">
