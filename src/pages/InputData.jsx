@@ -160,8 +160,8 @@ export default function InputData() {
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 ml-1">Metode</label>
               <select name="payment_method" className={`${inputClass} ${focusClass} bg-white w-full`} value={formData.payment_method} onChange={handleChange}>
                 <option value="cash">Cash</option>
-                <option value="Tf mandiri">Tf Mandiri</option>
-                <option value="Tf blu bca">Tf Blu BCA</option>
+                <option value="Tf mandiri">Tf mandiri</option>
+                <option value="Tf blu bca">Tf blu bca</option>
               </select>
             </motion.div>
 
