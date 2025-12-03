@@ -5,6 +5,7 @@ import Rekapan from './pages/Rekapan';
 import Budgeting from './pages/Budgeting';
 import Wallets from './pages/Wallets';
 import Categories from './pages/Categories';
+<<<<<<< HEAD
 import Login from './pages/Login';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -20,6 +21,8 @@ const PrivateRoute = ({ children }) => {
     </>
   );
 };
+=======
+>>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
 
 function App() {
   return (
@@ -31,6 +34,7 @@ function App() {
           {/* Public Route */}
           <Route path="/login" element={<Login />} />
 
+<<<<<<< HEAD
           {/* Protected Routes (Harus Login) */}
           <Route path="/" element={<PrivateRoute><InputData /></PrivateRoute>} />
           <Route path="/rekapan" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
@@ -40,6 +44,16 @@ function App() {
         </Routes>
       </div>
     </AuthProvider>
+=======
+      <Routes>
+        <Route path="/" element={<InputData />} />
+        <Route path="/rekapan" element={<Rekapan />} />
+        <Route path="/wallets" element={<Wallets />} />
+        <Route path="/budget" element={<Budgeting />} />
+        <Route path="/categories" element={<Categories />} />
+      </Routes>
+    </div>
+>>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
   );
 }
 
