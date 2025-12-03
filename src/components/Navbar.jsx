@@ -1,25 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-<<<<<<< HEAD
 // 1. IMPORT HOOK AUTH
 import { useAuth } from '../context/AuthContext';
-=======
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
 
 export default function Navbar() {
+  
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-<<<<<<< HEAD
   
   // 2. AMBIL FUNGSI SIGNOUT DARI CONTEXT
   const { signOut } = useAuth(); 
 
-=======
-
-  // Efek mendeteksi scroll agar navbar berubah style saat di-scroll
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -28,10 +21,6 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-<<<<<<< HEAD
-=======
-  // Daftar Menu
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
   const navLinks = [
     { path: '/', label: 'Input' },
     { path: '/rekapan', label: 'Rekapan' },
@@ -39,7 +28,6 @@ export default function Navbar() {
     { path: '/budget', label: 'Budget' },
     { path: '/categories', label: 'Kategori' },
   ];
-<<<<<<< HEAD
 
   // Fungsi Logout Wrapper (untuk mobile biar menu nutup dulu)
   const handleLogout = () => {
@@ -49,12 +37,6 @@ export default function Navbar() {
 
   return (
     <>
-=======
-
-  return (
-    <>
-      {/* Navbar Container: Glassmorphism Effect */}
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
       <nav 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled || isOpen 
@@ -65,7 +47,6 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             
-<<<<<<< HEAD
             {/* LOGO */}
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center gap-2 group">
@@ -74,28 +55,12 @@ export default function Navbar() {
                 </div>
                 <span className="text-2xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent tracking-tight">
                   MyFinance
-=======
-            {/* LOGO: Gradient Text */}
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="flex items-center gap-2 group">
-                {/* Icon Logo Sederhana */}
-                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
-                  G
-                </div>
-                <span className="text-2xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent tracking-tight">
-                  LarFinance
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
                 </span>
               </Link>
             </div>
 
-<<<<<<< HEAD
             {/* DESKTOP MENU */}
             <div className="hidden md:flex space-x-1 items-center">
-=======
-            {/* DESKTOP MENU (Dengan Animasi Pill) */}
-            <div className="hidden md:flex space-x-1">
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
@@ -117,7 +82,6 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-<<<<<<< HEAD
 
               {/* 3. TOMBOL LOGOUT DESKTOP (Ada garis pemisah 'border-l') */}
               <div className="pl-4 ml-2 border-l border-gray-300">
@@ -131,8 +95,6 @@ export default function Navbar() {
                   </svg>
                 </button>
               </div>
-=======
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
             </div>
 
             {/* MOBILE BURGER BUTTON */}
@@ -163,11 +125,7 @@ export default function Navbar() {
           </div>
         </div>
 
-<<<<<<< HEAD
         {/* MOBILE MENU */}
-=======
-        {/* MOBILE MENU (Slide Down Animation) */}
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -175,15 +133,9 @@ export default function Navbar() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-<<<<<<< HEAD
               className="md:hidden overflow-hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 shadow-xl"
             >
               <div className="px-4 pt-2 pb-6 space-y-2">
-=======
-              className="md:hidden overflow-hidden bg-white/95 backdrop-blur-xl border-t border-gray-100"
-            >
-              <div className="px-4 pt-2 pb-6 space-y-2 shadow-inner">
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
                 {navLinks.map((link) => {
                   const isActive = location.pathname === link.path;
                   return (
@@ -201,7 +153,6 @@ export default function Navbar() {
                     </Link>
                   );
                 })}
-<<<<<<< HEAD
                 
                 {/* 4. TOMBOL LOGOUT MOBILE (Paling Bawah) */}
                 <div className="pt-4 mt-2 border-t border-gray-100">
@@ -215,19 +166,13 @@ export default function Navbar() {
                     </svg>
                   </button>
                 </div>
-=======
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </nav>
       
-<<<<<<< HEAD
       {/* Spacer */}
-=======
-      {/* Spacer agar konten tidak tertutup navbar fixed */}
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
       <div className="h-16" />
     </>
   );

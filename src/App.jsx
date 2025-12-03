@@ -5,15 +5,17 @@ import Rekapan from './pages/Rekapan';
 import Budgeting from './pages/Budgeting';
 import Wallets from './pages/Wallets';
 import Categories from './pages/Categories';
-<<<<<<< HEAD
 import Login from './pages/Login';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Komponen Pembungkus (Satpam)
+// Komponen Pembungkus (Satpam) untuk memproteksi halaman
 const PrivateRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  
+  if (loading) return <div className="p-4 text-center">Loading auth...</div>;
   if (!user) return <Navigate to="/login" />;
+  
   return (
     <>
       <Navbar /> {/* Navbar hanya muncul jika sudah login */}
@@ -21,8 +23,6 @@ const PrivateRoute = ({ children }) => {
     </>
   );
 };
-=======
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
 
 function App() {
   return (
@@ -31,11 +31,11 @@ function App() {
         <Toaster position="top-center" />
         
         <Routes>
-          {/* Public Route */}
+          {/* Public Route (Bisa diakses tanpa login) */}
           <Route path="/login" element={<Login />} />
 
-<<<<<<< HEAD
           {/* Protected Routes (Harus Login) */}
+          {/* Perhatikan: Halaman utama ("/") mengarah ke InputData, BUKAN Dashboard */}
           <Route path="/" element={<PrivateRoute><InputData /></PrivateRoute>} />
           <Route path="/rekapan" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
           <Route path="/budget" element={<PrivateRoute><Budgeting /></PrivateRoute>} />
@@ -44,16 +44,6 @@ function App() {
         </Routes>
       </div>
     </AuthProvider>
-=======
-      <Routes>
-        <Route path="/" element={<InputData />} />
-        <Route path="/rekapan" element={<Rekapan />} />
-        <Route path="/wallets" element={<Wallets />} />
-        <Route path="/budget" element={<Budgeting />} />
-        <Route path="/categories" element={<Categories />} />
-      </Routes>
-    </div>
->>>>>>> fc3abdee8df7009c76f9131b123b48ed55fd5c09
   );
 }
 
