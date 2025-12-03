@@ -43,7 +43,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-orange-600 mb-2">MyFinance</h1>
+          <h1 className="text-3xl font-black text-orange-600 mb-2">LarFinance</h1>
           <p className="text-gray-500">Kelola keuanganmu dengan aman.</p>
         </div>
 

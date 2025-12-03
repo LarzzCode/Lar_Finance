@@ -8,6 +8,7 @@ import Categories from './pages/Categories';
 import Login from './pages/Login';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Subscriptions from './pages/Subscriptions';
 
 // Komponen Pembungkus (Satpam) untuk memproteksi halaman
 const PrivateRoute = ({ children }) => {
@@ -39,8 +40,8 @@ function App() {
           <Route path="/" element={<PrivateRoute><InputData /></PrivateRoute>} />
           <Route path="/rekapan" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
           <Route path="/budget" element={<PrivateRoute><Budgeting /></PrivateRoute>} />
-          <Route path="/wallets" element={<PrivateRoute><Wallets /></PrivateRoute>} />
           <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
+          <Route path="/subscriptions" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
         </Routes>
       </div>
     </AuthProvider>
