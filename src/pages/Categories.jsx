@@ -77,7 +77,7 @@ export default function Categories() {
   const expenseCats = categories.filter(c => c.type === 'expense');
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen w-full max-w-4xl mx-auto px-4 pt-20 pb-24 md:pt-24 md:pb-8">
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-bold text-gray-900">Atur Kategori</h2>
         <p className="text-sm text-gray-500">Kelola kategori pengeluaran dan pemasukanmu.</p>

@@ -201,8 +201,7 @@ export default function Navbar() {
       </nav>
 
       {/* Spacer agar konten tidak tertutup Top/Bottom Bar */}
-      <div className="h-20 md:h-24" /> {/* Atas */}
-      <div className="md:hidden h-20" /> {/* Bawah (Khusus Mobile) */}
+
     </>
   );
 }

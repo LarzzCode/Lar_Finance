@@ -65,7 +65,11 @@ export default function InputData() {
   const subtleTap = { scale: 0.99 };
 
   return (
-    <div className={`min-h-[90vh] flex items-center justify-center py-12 px-2 sm:px-6 lg:px-8 transition-colors duration-500 ${type === 'income' ? 'bg-green-50' : 'bg-red-50'}`}>
+    <div className={`min-h-screen w-full flex flex-col items-center justify-start 
+  pt-20 pb-24 md:justify-center md:pt-24 md:pb-12 px-2 sm:px-6 lg:px-8 
+  transition-colors duration-500 
+  ${type === 'income' ? 'bg-green-50' : 'bg-red-50'}`}
+>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }} 

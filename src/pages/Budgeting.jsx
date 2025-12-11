@@ -117,7 +117,7 @@ export default function Budgeting() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen w-full max-w-4xl mx-auto px-4 pt-20 pb-24 md:pt-24 md:pb-8">
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-gray-900">Budgeting Bulanan</h2>
         <p className="text-sm text-gray-500">Atur batas pengeluaranmu agar tidak boncos.</p>

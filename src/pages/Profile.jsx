@@ -93,7 +93,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8">
+    <div className="min-h-screen w-full max-w-xl mx-auto px-4 pt-20 pb-24 md:pt-24 md:pb-8">
       <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center">
         <h2 className="text-2xl font-black text-gray-800 mb-6">Edit Profil</h2>
 
