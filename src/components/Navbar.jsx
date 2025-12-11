@@ -169,10 +169,10 @@ export default function Navbar() {
       <nav className={`md:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 transition-all duration-300 h-16 flex items-center justify-center`}>
         <Link to="/" className="flex items-center gap-2">
            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30">
-             $
+             G
            </div>
            <span className="text-xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent tracking-tight">
-             MyFinance
+             LarFinance
            </span>
         </Link>
       </nav>
