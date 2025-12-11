@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 export default function Budgeting() {
-  const [items, setItems] = useState([]);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [budgets, setBudgets] = useState([]);
+  const [categories, setCategories] = useState([]);
   
-  // State untuk Modal Edit Budget
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
-  const [inputAmount, setInputAmount] = useState('');
+  // State Form
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formData, setFormData] = useState({ category_id: '', amount: '' });
 
   useEffect(() => {
     fetchData();
@@ -22,88 +24,80 @@ export default function Budgeting() {
     const start = format(startOfMonth(new Date()), 'yyyy-MM-dd');
     const end = format(endOfMonth(new Date()), 'yyyy-MM-dd');
 
-    // 1. Ambil semua kategori pengeluaran
-    const { data: categories } = await supabase
-      .from('categories')
-      .select('id, name')
-      .eq('type', 'expense');
+    // 1. Ambil Data Budget User
+    const { data: budgetData } = await supabase
+      .from('budgets')
+      .select('*, categories(name, type)')
+      .order('amount', { ascending: false });
 
-    // 2. Ambil data Budget yang sudah diset
-    const { data: budgets } = await supabase.from('budgets').select('*');
-
-    // 3. Ambil total pengeluaran BULAN INI per kategori
-    const { data: transactions } = await supabase
+    // 2. PERBAIKAN DI SINI (Gunakan !inner untuk filter relasi)
+    const { data: transData, error } = await supabase
       .from('transactions')
-      .select('category_id, amount')
+      // Tambahkan 'categories!inner(type)' agar bisa difilter
+      .select('amount, category_id, categories!inner(type)') 
+      .eq('categories.type', 'expense') 
       .gte('transaction_date', start)
       .lte('transaction_date', end);
 
-    // 4. GABUNGKAN DATA (Mapping Logic)
-    const mergedData = categories.map(cat => {
-      // Cari budget untuk kategori ini
-      const budgetObj = budgets.find(b => b.category_id === cat.id);
-      const limit = budgetObj ? Number(budgetObj.amount) : 0; // Kalau belum set, anggap 0
+    if (error) console.error("Error fetching transactions:", error);
 
-      // Hitung pengeluaran aktual bulan ini
-      const spent = transactions
-        .filter(t => t.category_id === cat.id)
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+    // 3. Ambil Kategori
+    const { data: catData } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('type', 'expense');
 
-      // Hitung Persentase
-      let percentage = 0;
-      if (limit > 0) percentage = (spent / limit) * 100;
+    // 4. PERBAIKAN SAFETY (Tambahkan || [] agar tidak crash jika null)
+    const validTransData = transData || []; 
+
+    const processedBudgets = budgetData?.map(b => {
+      const spent = validTransData
+        .filter(t => t.category_id === b.category_id)
+        .reduce((acc, curr) => acc + Number(curr.amount), 0);
       
-      return {
-        ...cat,
-        limit,
-        spent,
-        percentage
-      };
+      const percentage = Math.min((spent / b.amount) * 100, 100);
+      
+      return { ...b, spent, percentage };
     });
 
-    setItems(mergedData);
+    setBudgets(processedBudgets || []);
+    setCategories(catData || []);
     setLoading(false);
   };
 
-  const handleEditClick = (item) => {
-    setSelectedCategory(item);
-    setInputAmount(item.limit || ''); // Isi form dengan limit lama
-    setIsModalOpen(true);
-  };
-
-  const handleSaveBudget = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (!selectedCategory) return;
+    if (!formData.category_id || !formData.amount) return;
 
-    // Cek apakah budget sudah ada? Update. Kalau belum? Insert.
-    const { data: existing } = await supabase
-      .from('budgets')
-      .select('id')
-      .eq('category_id', selectedCategory.id)
-      .single();
-
-    let error;
+    // Cek apakah budget untuk kategori ini sudah ada?
+    const existing = budgets.find(b => b.category_id === parseInt(formData.category_id));
+    
     if (existing) {
-      // Update
-      const { error: err } = await supabase
+      // Update jika sudah ada
+      const { error } = await supabase
         .from('budgets')
-        .update({ amount: inputAmount })
+        .update({ amount: formData.amount })
         .eq('id', existing.id);
-      error = err;
+      if (error) toast.error(error.message);
+      else toast.success('Budget diperbarui!');
     } else {
-      // Insert Baru
-      const { error: err } = await supabase
-        .from('budgets')
-        .insert([{ category_id: selectedCategory.id, amount: inputAmount }]);
-      error = err;
+      // Insert baru
+      const { error } = await supabase.from('budgets').insert([formData]);
+      if (error) toast.error(error.message);
+      else toast.success('Budget baru dibuat!');
     }
 
-    if (error) {
-      toast.error('Gagal simpan: ' + error.message);
-    } else {
-      toast.success(`Budget ${selectedCategory.name} diupdate!`);
-      setIsModalOpen(false);
-      fetchData(); // Refresh data
+    setIsFormOpen(false);
+    setFormData({ category_id: '', amount: '' });
+    fetchData();
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Hapus budget ini?')) return;
+    const { error } = await supabase.from('budgets').delete().eq('id', id);
+    if (!error) {
+      toast.success('Budget dihapus');
+      fetchData();
     }
   };
 
@@ -111,102 +105,151 @@ export default function Budgeting() {
 
   // Helper Warna Progress Bar
   const getProgressColor = (percent) => {
-    if (percent >= 100) return 'bg-red-600'; // Bahaya
-    if (percent >= 80) return 'bg-yellow-500'; // Hati-hati
-    return 'bg-green-500'; // Aman
+    if (percent >= 100) return 'bg-red-500';
+    if (percent >= 75) return 'bg-orange-400';
+    return 'bg-green-500';
+  };
+
+  const getCardStatus = (percent) => {
+    if (percent >= 100) return 'border-red-200 bg-red-50';
+    if (percent >= 75) return 'border-orange-100 bg-white';
+    return 'border-gray-100 bg-white';
   };
 
   return (
     <div className="min-h-screen w-full max-w-4xl mx-auto px-4 pt-20 pb-24 md:pt-24 md:pb-8">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Budgeting Bulanan</h2>
-        <p className="text-sm text-gray-500">Atur batas pengeluaranmu agar tidak boncos.</p>
+      
+      <div className="flex justify-between items-end mb-8">
+        <div>
+          <h2 className="text-2xl font-black text-gray-800">Budgeting Bulanan</h2>
+          <p className="text-sm text-gray-500">Jaga pengeluaranmu agar tidak boncos.</p>
+        </div>
+        <button 
+          onClick={() => setIsFormOpen(!isFormOpen)}
+          className="bg-gray-900 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-black transition-transform active:scale-95"
+        >
+          {isFormOpen ? 'Tutup' : '+ Atur Budget'}
+        </button>
       </div>
 
-      <div className="grid gap-6">
-        {loading ? <p className="text-center">Loading data...</p> : items.map((item) => (
-          <div key={item.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
-            
-            <div className="flex justify-between items-end mb-2">
-              <div>
-                <h3 className="font-bold text-gray-800 text-lg">{item.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Terpakai: <span className="font-semibold text-gray-700">{rupiah(item.spent)}</span>
-                  {' / '}
-                  Target: <span className="font-semibold text-gray-700">{item.limit > 0 ? rupiah(item.limit) : 'Belum diset'}</span>
-                </p>
-              </div>
-              <button 
-                onClick={() => handleEditClick(item)}
-                className="text-sm text-orange-600 font-bold hover:bg-orange-50 px-3 py-1 rounded-lg transition-colors"
-              >
-                Set Budget
-              </button>
-            </div>
-
-            {/* PROGRESS BAR */}
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(item.percentage, 100)}%` }} // Max width 100% biar ga luber
-                transition={{ duration: 1, ease: "easeOut" }}
-                className={`h-4 rounded-full ${getProgressColor(item.percentage)} relative`}
-              >
-                {/* Efek Kilau/Shine (Opsional) */}
-                <div className="absolute top-0 left-0 bottom-0 right-0 bg-white/20"></div>
-              </motion.div>
-            </div>
-            
-            {/* Indikator Persen */}
-            <p className={`text-xs text-right mt-1 font-bold ${item.percentage >= 100 ? 'text-red-600' : 'text-gray-500'}`}>
-              {item.limit > 0 ? `${item.percentage.toFixed(1)}%` : '0%'}
-            </p>
-
-            {/* Peringatan Over Budget */}
-            {item.percentage >= 100 && (
-              <div className="mt-2 bg-red-50 text-red-700 text-xs px-3 py-2 rounded-lg font-medium flex items-center gap-2">
-                ⚠️ Hati-hati! Kamu sudah melebihi budget {item.name}.
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* MODAL EDIT BUDGET */}
+      {/* FORM INPUT BUDGET (ANIMATED) */}
       <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-xl"
-            >
-              <h3 className="text-lg font-bold mb-4">Set Budget: {selectedCategory?.name}</h3>
-              <form onSubmit={handleSaveBudget}>
+        {isFormOpen && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }} 
+            animate={{ height: 'auto', opacity: 1 }} 
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden mb-8"
+          >
+            <form onSubmit={handleSave} className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 grid md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Kategori</label>
+                <select 
+                  className="w-full p-3 border rounded-xl bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-gray-200"
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                  required
+                >
+                  <option value="">-- Pilih --</option>
+                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Batas Maksimal (Rp)</label>
                 <input 
                   type="number" 
-                  autoFocus
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-xl font-bold text-lg mb-6 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                  value={inputAmount}
-                  onChange={(e) => setInputAmount(e.target.value)}
+                  className="w-full p-3 border rounded-xl bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-gray-200"
                   placeholder="0"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  required
                 />
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-gray-600 font-bold bg-gray-100 rounded-xl hover:bg-gray-200">
-                    Batal
-                  </button>
-                  <button type="submit" className="flex-1 py-3 text-white font-bold bg-orange-500 rounded-xl hover:bg-orange-600 shadow-lg">
-                    Simpan
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
+              </div>
+              <button type="submit" className="w-full py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 shadow-md">
+                Simpan Target
+              </button>
+            </form>
+          </motion.div>
         )}
       </AnimatePresence>
+
+      {/* LIST BUDGET CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {loading ? <p className="text-center col-span-2 text-gray-400">Menghitung...</p> : budgets.map(b => (
+          <motion.div 
+            key={b.id}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.02 }}
+            className={`p-5 rounded-3xl border shadow-sm relative overflow-hidden transition-colors ${getCardStatus(b.percentage)}`}
+          >
+            {/* Header Card */}
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-lg shadow-sm border border-gray-100">
+                  💸
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800">{b.categories?.name}</h3>
+                  <p className="text-xs text-gray-500">Limit: {rupiah(b.amount)}</p>
+                </div>
+              </div>
+              <button onClick={() => handleDelete(b.id)} className="text-gray-300 hover:text-red-500 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Progress Bar Container */}
+            <div className="relative pt-1">
+              <div className="flex mb-2 items-center justify-between">
+                <div>
+                  <span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${b.percentage >= 100 ? 'text-red-600 bg-red-200' : 'text-green-600 bg-green-200'}`}>
+                    {b.percentage >= 100 ? 'Over Budget!' : 'Terpakai'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-semibold inline-block text-gray-600">
+                    {Math.round(b.percentage)}%
+                  </span>
+                </div>
+              </div>
+              
+              {/* Bar Background */}
+              <div className="overflow-hidden h-3 mb-4 text-xs flex rounded-full bg-gray-200">
+                {/* Bar Fill (Animated) */}
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${b.percentage}%` }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${getProgressColor(b.percentage)}`}
+                />
+              </div>
+            </div>
+
+            {/* Footer Info */}
+            <div className="flex justify-between items-center pt-2 border-t border-gray-100/50">
+              <div className="text-xs text-gray-500">
+                Terpakai: <span className="font-bold text-gray-700">{rupiah(b.spent)}</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                Sisa: <span className={`font-bold ${b.amount - b.spent < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                  {rupiah(b.amount - b.spent)}
+                </span>
+              </div>
+            </div>
+
+          </motion.div>
+        ))}
+
+        {budgets.length === 0 && !loading && (
+          <div className="col-span-1 md:col-span-2 text-center py-12 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-400 font-medium">Belum ada budget yang diatur.</p>
+            <p className="text-sm text-gray-400 mt-1">Klik "+ Atur Budget" untuk mulai berhemat.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

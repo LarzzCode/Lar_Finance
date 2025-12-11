@@ -4,12 +4,18 @@ import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYea
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import { motion, AnimatePresence } from 'framer-motion'; // Import Framer Motion
 import EditModal from '../components/EditModal';
 
 export default function Rekapan() {
   const [filter, setFilter] = useState('monthly');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // STATE BARU: Pagination & Tipe Filter
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all', 'income', 'expense'
 
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
@@ -42,14 +48,13 @@ export default function Rekapan() {
       end = format(endOfYear(targetDate), fmt);
     }
 
-    // UPDATE: Menambahkan .order('created_at') agar data mentah sudah urut waktu input
     const { data } = await supabase
       .from('transactions')
       .select('*, categories(name, type)')
       .gte('transaction_date', start)
       .lte('transaction_date', end)
-      .order('transaction_date', { ascending: false }) 
-      .order('created_at', { ascending: false }); // Prioritas kedua: Waktu input
+      .order('transaction_date', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (data) {
       setTransactions(data);
@@ -58,37 +63,44 @@ export default function Rekapan() {
     }
   };
 
-  // --- LOGIKA SEARCH + SORT (DIPERBARUI) ---
-  const processedTransactions = [...transactions]
-    .filter((t) => {
-      const query = searchQuery.toLowerCase();
-      const desc = (t.description || '').toLowerCase();
-      const cat = (t.categories?.name || '').toLowerCase();
-      const method = (t.payment_method || '').toLowerCase();
-      return desc.includes(query) || cat.includes(query) || method.includes(query);
-    })
-    .sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+  // --- LOGIKA UTAMA (FILTER + SORT + PAGINATION) ---
+  const filteredData = transactions.filter((t) => {
+    // 1. Filter Search Text
+    const query = searchQuery.toLowerCase();
+    const desc = (t.description || '').toLowerCase();
+    const cat = (t.categories?.name || '').toLowerCase();
+    const matchSearch = desc.includes(query) || cat.includes(query);
 
-      if (sortConfig.key === 'category') {
-        aValue = a.categories?.name || '';
-        bValue = b.categories?.name || '';
-      }
-      if (sortConfig.key === 'amount') {
-        aValue = Number(a.amount);
-        bValue = Number(b.amount);
-      }
+    // 2. Filter Tipe (Income/Expense)
+    const matchType = typeFilter === 'all' ? true : t.categories?.type === typeFilter;
 
-      // 1. Cek Sorting Utama (Sesuai kolom yang diklik)
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      
-      // 2. TIE-BREAKER (PEMECAH SERI)
-      // Jika nilainya sama (misal tanggal sama-sama hari ini),
-      // Urutkan berdasarkan ID secara Descending (ID Besar = Inputan Baru)
-      return b.id - a.id; 
-    });
+    return matchSearch && matchType;
+  });
+
+  const sortedData = [...filteredData].sort((a, b) => {
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+
+    if (sortConfig.key === 'category') {
+      aValue = a.categories?.name || '';
+      bValue = b.categories?.name || '';
+    }
+    if (sortConfig.key === 'amount') {
+      aValue = Number(a.amount);
+      bValue = Number(b.amount);
+    }
+
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return b.id - a.id; 
+  });
+
+  // 3. Logic Pagination
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  const paginatedData = sortedData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const processSummary = (data) => {
     let inc = 0, exp = 0;
@@ -121,28 +133,22 @@ export default function Rekapan() {
   };
 
   const handleExport = () => {
-    const dataToExport = processedTransactions.map((t, index) => {
+    const dataToExport = sortedData.map((t, index) => {
       const dateObj = new Date(t.transaction_date);
-      const dayName = dateObj.toLocaleDateString('id-ID', { weekday: 'long' });
-      
       return {
         'No': index + 1,
         'Date': format(dateObj, 'dd/MM/yyyy'),
-        'Day': dayName,
         'Description': t.description,
         'Category': t.categories?.name,
-        'Payment': t.payment_method || 'Cash',
         'Nominal': Number(t.amount)
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Keuangan");
-    worksheet['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 10 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
-    const fileName = `Laporan_Keuangan_${filter}_${selectedDate}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
-    toast.success('File Excel berhasil didownload!');
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan");
+    XLSX.writeFile(workbook, `Laporan_${filter}_${selectedDate}.xlsx`);
+    toast.success('Excel berhasil didownload!');
   };
 
   const handleDelete = async (id) => {
@@ -150,7 +156,7 @@ export default function Rekapan() {
       const { error } = await supabase.from('transactions').delete().eq('id', id);
       if (error) toast.error('Gagal hapus: ' + error.message);
       else {
-        toast.success('Data berhasil dihapus');
+        toast.success('Dihapus');
         fetchData();
       }
     }
@@ -167,229 +173,210 @@ export default function Rekapan() {
     setSortConfig({ key, direction });
   };
 
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <span className="text-gray-300 ml-1">↕</span>;
-    return sortConfig.direction === 'asc' ? <span className="text-orange-500 ml-1">↑</span> : <span className="text-orange-500 ml-1">↓</span>;
-  };
-
   const rupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
   const formatDate = (dateString) => format(new Date(dateString), 'dd/MM/yyyy');
 
-  const getPeriodLabel = () => {
-    const d = new Date(selectedDate);
-    if (filter === 'weekly') return `Minggu: ${format(startOfWeek(d, { weekStartsOn: 1 }), 'dd MMM')} - ${format(endOfWeek(d, { weekStartsOn: 1 }), 'dd MMM yyyy')}`;
-    if (filter === 'monthly') return `Periode: ${format(d, 'MMMM yyyy')}`;
-    return `Periode Tahun: ${format(d, 'yyyy')}`;
-  };
-
-  const getBadgeColor = (type, name) => {
-    if (type === 'income') return 'bg-green-100 text-green-800 border border-green-200';
-    const colors = {
-      'Makanan': 'bg-orange-100 text-orange-800',
-      'Transport': 'bg-blue-100 text-blue-800',
-      'Skincare': 'bg-pink-100 text-pink-800',
-      'Internet': 'bg-purple-100 text-purple-800'
-    };
-    return colors[name] || 'bg-gray-100 text-gray-800';
-  };
+  const getBadgeColor = (type) => type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
 
   return (
-   <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 md:pt-24 md:pb-8">
+    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 md:pt-24 md:pb-8">
       
       <EditModal 
-        isOpen={isEditOpen} 
-        onClose={() => setIsEditOpen(false)} 
-        transaction={editData}
-        onSuccess={fetchData} 
+        isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} transaction={editData} onSuccess={fetchData} 
       />
 
-      {/* HEADER CONTROLLER */}
-      <div className="bg-white p-4 rounded-lg shadow mb-8 border border-gray-200">
+      {/* HEADER CONTROLS */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Dashboard Visual</h2>
-              <p className="text-sm text-gray-500 mt-1">{getPeriodLabel()}</p>
-            </div>
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-gray-800">Dashboard</h2>
+            <button onClick={handleExport} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow hover:bg-green-700">Export Excel</button>
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-grow">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <input 
-                type="text"
-                placeholder="Cari transaksi..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <button
-              onClick={handleExport}
-              className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all text-sm whitespace-nowrap"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-              Excel
-            </button>
-
+            <input 
+              type="text" placeholder="Cari transaksi..."
+              className="flex-grow p-2 border rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none"
+              value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            />
             <div className="flex gap-2">
-              <select 
-                value={filter} onChange={(e) => setFilter(e.target.value)}
-                className="block py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-              >
+              <select value={filter} onChange={(e) => setFilter(e.target.value)} className="p-2 border rounded-xl text-sm bg-white">
                 <option value="weekly">Mingguan</option>
                 <option value="monthly">Bulanan</option>
                 <option value="yearly">Tahunan</option>
               </select>
-              <input 
-                type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}
-                className="block py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-              />
+              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="p-2 border rounded-xl text-sm bg-white" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-green-500 p-5">
-          <dt className="text-sm font-medium text-gray-500">Pemasukan</dt>
-          <dd className="mt-1 text-2xl font-semibold text-green-600">{rupiah(summary.income)}</dd>
+      {/* SUMMARY CARDS */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-green-50 p-3 rounded-2xl border border-green-100 text-center">
+          <p className="text-xs text-green-600 font-bold uppercase">Masuk</p>
+          <p className="text-sm sm:text-lg font-black text-green-700">{rupiah(summary.income)}</p>
         </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-red-500 p-5">
-          <dt className="text-sm font-medium text-gray-500">Pengeluaran</dt>
-          <dd className="mt-1 text-2xl font-semibold text-red-600">{rupiah(summary.expense)}</dd>
+        <div className="bg-red-50 p-3 rounded-2xl border border-red-100 text-center">
+          <p className="text-xs text-red-600 font-bold uppercase">Keluar</p>
+          <p className="text-sm sm:text-lg font-black text-red-700">{rupiah(summary.expense)}</p>
         </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-blue-500 p-5">
-          <dt className="text-sm font-medium text-gray-500">Sisa Saldo</dt>
-          <dd className={`mt-1 text-3xl font-extrabold ${summary.balance < 0 ? 'text-red-600' : 'text-blue-600'}`}>
-            {rupiah(summary.balance)}
-          </dd>
+        <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 text-center">
+          <p className="text-xs text-blue-600 font-bold uppercase">Sisa</p>
+          <p className="text-sm sm:text-lg font-black text-blue-700">{rupiah(summary.balance)}</p>
         </div>
       </div>
 
       {/* GRAFIK */}
       {searchQuery === '' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-700 mb-4 text-center">Komposisi Pengeluaran</h3>
-            <div className="h-64 w-full">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                      {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                    </Pie>
-                    <Tooltip formatter={(value) => rupiah(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (<div className="flex items-center justify-center h-full text-gray-400">Data Kosong</div>)}
-            </div>
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                  {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
+                </Pie>
+                <Tooltip formatter={(value) => rupiah(value)} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-            <h3 className="text-lg font-bold text-gray-700 mb-4 text-center">Tren Arus Kas</h3>
-            <div className="h-64 w-full">
-               {dailyData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="date" />
-                    <YAxis hide />
-                    <Tooltip formatter={(value) => rupiah(value)} />
-                    <Legend />
-                    <Bar dataKey="income" name="Masuk" fill="#10B981" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="expense" name="Keluar" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-               ) : (<div className="flex items-center justify-center h-full text-gray-400">Data Kosong</div>)}
-            </div>
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 h-64">
+             <ResponsiveContainer width="100%" height="100%">
+               <BarChart data={dailyData}>
+                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                 <XAxis dataKey="date" fontSize={10} />
+                 <Tooltip formatter={(value) => rupiah(value)} />
+                 <Bar dataKey="income" fill="#10B981" radius={[4, 4, 0, 0]} />
+                 <Bar dataKey="expense" fill="#EF4444" radius={[4, 4, 0, 0]} />
+               </BarChart>
+             </ResponsiveContainer>
           </div>
         </div>
       )}
 
-      {/* TABEL TRANSAKSI */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-10">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
-            {searchQuery ? `Hasil Pencarian: "${searchQuery}"` : 'Riwayat Transaksi'}
-          </h3>
+      {/* LIST TRANSAKSI INTERAKTIF */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        {/* TAB FILTER CHIPS */}
+        <div className="flex gap-2 p-4 border-b border-gray-100 overflow-x-auto">
+          {['all', 'income', 'expense'].map((t) => (
+            <button
+              key={t}
+              onClick={() => { setTypeFilter(t); setCurrentPage(1); }}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
+                typeFilter === t 
+                  ? 'bg-gray-900 text-white shadow-md' 
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              {t === 'all' ? 'Semua' : (t === 'income' ? 'Pemasukan' : 'Pengeluaran')}
+            </button>
+          ))}
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+
+        {/* --- TAMPILAN TABLE (DESKTOP) --- */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="min-w-full">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
               <tr>
-                <th onClick={() => handleSort('transaction_date')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
-                  Tanggal {getSortIcon('transaction_date')}
-                </th>
-                <th onClick={() => handleSort('category')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
-                  Kategori {getSortIcon('category')}
-                </th>
-                <th onClick={() => handleSort('description')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
-                  Deskripsi {getSortIcon('description')}
-                </th>
-                <th onClick={() => handleSort('payment_method')} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
-                  Metode {getSortIcon('payment_method')}
-                </th>
-                <th onClick={() => handleSort('amount')} className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none">
-                  Nominal {getSortIcon('amount')}
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                  Aksi
-                </th>
+                <th className="px-6 py-3 text-left cursor-pointer hover:text-orange-500" onClick={() => handleSort('transaction_date')}>Tanggal</th>
+                <th className="px-6 py-3 text-left">Kategori</th>
+                <th className="px-6 py-3 text-left">Deskripsi</th>
+                <th className="px-6 py-3 text-right cursor-pointer hover:text-orange-500" onClick={() => handleSort('amount')}>Nominal</th>
+                <th className="px-6 py-3 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {processedTransactions.length === 0 ? (
-                <tr><td colSpan="6" className="px-6 py-10 text-center text-gray-500">Tidak ada data ditemukan.</td></tr>
-              ) : (
-                processedTransactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(t.transaction_date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getBadgeColor(t.categories?.type, t.categories?.name)}`}>
-                        {t.categories?.name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{t.description || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{t.payment_method || 'cash'}</td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-bold ${t.categories?.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                      {t.categories?.type === 'income' ? '+' : '-'} {rupiah(t.amount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => handleEdit(t)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-lg transition-colors shadow-sm border border-blue-100"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(t.id)}
-                          className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-lg transition-colors shadow-sm border border-red-100"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+            <tbody className="divide-y divide-gray-100">
+              <AnimatePresence mode='wait'>
+                {paginatedData.length === 0 ? (
+                  <tr><td colSpan="5" className="text-center py-10 text-gray-400">Tidak ada data</td></tr>
+                ) : (
+                  paginatedData.map((t) => (
+                    <motion.tr 
+                      key={t.id}
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      whileHover={{ backgroundColor: "#F9FAFB", scale: 1.005 }} // Efek Hover Interaktif
+                      className="group transition-all"
+                    >
+                      <td className="px-6 py-4 text-sm text-gray-600">{formatDate(t.transaction_date)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getBadgeColor(t.categories?.type)}`}>
+                          {t.categories?.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{t.description}</td>
+                      <td className={`px-6 py-4 text-sm font-bold text-right ${t.categories?.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                        {t.categories?.type === 'income' ? '+' : '-'} {rupiah(t.amount)}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEdit(t)} className="text-blue-500 hover:bg-blue-50 p-1 rounded">✏️</button>
+                          <button onClick={() => handleDelete(t.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">🗑️</button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
+
+        {/* --- TAMPILAN KARTU (MOBILE) --- */}
+        <div className="md:hidden">
+          <AnimatePresence>
+            {paginatedData.length === 0 ? (
+              <div className="text-center py-10 text-gray-400">Tidak ada data</div>
+            ) : (
+              paginatedData.map((t) => (
+                <motion.div
+                  key={t.id}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className="p-4 border-b border-gray-100 flex justify-between items-center active:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${t.categories?.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+                      {t.categories?.type === 'income' ? '💰' : '💸'}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 text-sm">{t.categories?.name}</p>
+                      <p className="text-xs text-gray-400">{formatDate(t.transaction_date)} • {t.description || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold text-sm ${t.categories?.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {rupiah(t.amount)}
+                    </p>
+                    <div className="flex justify-end gap-3 mt-1">
+                      <button onClick={() => handleEdit(t)} className="text-[10px] font-bold text-blue-500">EDIT</button>
+                      <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-red-500">HAPUS</button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* PAGINATION CONTROLS */}
+        <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50">
+          <button 
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(c => c - 1)}
+            className="px-3 py-1 bg-white border rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-gray-100"
+          >
+            ← Prev
+          </button>
+          <span className="text-xs font-medium text-gray-500">Hal {currentPage} dari {totalPages || 1}</span>
+          <button 
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage(c => c + 1)}
+            className="px-3 py-1 bg-white border rounded-lg text-xs font-bold disabled:opacity-50 hover:bg-gray-100"
+          >
+            Next →
+          </button>
+        </div>
+
       </div>
     </div>
   );
