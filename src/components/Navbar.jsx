@@ -49,13 +49,12 @@ export default function Navbar() {
     }
   };
 
-  // DEFINISI MENU & ICON SVG
   const navLinks = [
     { 
       path: '/', 
       label: 'Input', 
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${active ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth={active ? 0 : 2} stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )
@@ -64,7 +63,7 @@ export default function Navbar() {
       path: '/rekapan', 
       label: 'Rekap', 
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${active ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth={active ? 0 : 2} stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       )
@@ -73,7 +72,7 @@ export default function Navbar() {
       path: '/budget', 
       label: 'Budget', 
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${active ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth={active ? 0 : 2} stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
         </svg>
@@ -83,7 +82,7 @@ export default function Navbar() {
       path: '/subscriptions', 
       label: 'Langganan', 
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${active ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth={active ? 0 : 2} stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       )
@@ -92,7 +91,7 @@ export default function Navbar() {
       path: '/categories', 
       label: 'Kategori', 
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${active ? 'fill-current' : 'stroke-current fill-none'}`} viewBox="0 0 24 24" strokeWidth={active ? 0 : 2} stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
         </svg>
       )
@@ -101,7 +100,7 @@ export default function Navbar() {
       path: '/profile', 
       label: 'Profil', 
       icon: (active) => (
-        <div className={`w-6 h-6 rounded-full overflow-hidden border-2 ${active ? 'border-orange-500' : 'border-gray-400'}`}>
+        <div className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-colors duration-300 ${active ? 'border-orange-500' : 'border-gray-400'}`}>
            {avatarUrl ? (
              <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
            ) : (
@@ -116,11 +115,11 @@ export default function Navbar() {
 
   return (
     <>
-      {/* --- DESKTOP NAVBAR (Layout Lama) --- */}
+      {/* --- DESKTOP NAVBAR --- */}
       <nav className={`hidden md:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200/50' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            {/* Logo Desktop */}
+            {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
               <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30">
                 G
@@ -130,9 +129,9 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* Menu Desktop */}
+            {/* Menu */}
             <div className="flex space-x-1 items-center">
-              {navLinks.slice(0, 5).map((link) => { // Slice agar Profile tidak double di desktop menu teks
+              {navLinks.slice(0, 5).map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
                   <Link key={link.path} to={link.path} className={`relative px-4 py-2 rounded-full text-sm font-bold transition-colors ${isActive ? 'text-orange-600' : 'text-gray-600 hover:text-gray-900'}`}>
@@ -142,7 +141,7 @@ export default function Navbar() {
                 );
               })}
               
-              {/* Profile & Logout Desktop */}
+              {/* Profile & Logout */}
               <div className="flex items-center gap-3 pl-4 ml-2 border-l border-gray-300">
                 <Link to="/profile" className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-2 py-1.5 pr-3 rounded-full transition-colors">
                   {avatarUrl ? (
@@ -165,8 +164,8 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* --- MOBILE TOP BAR (Hanya Logo Tengah) --- */}
-      <nav className={`md:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 transition-all duration-300 h-16 flex items-center justify-center`}>
+      {/* --- MOBILE TOP BAR --- */}
+      <nav className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 h-16 flex items-center justify-center">
         <Link to="/" className="flex items-center gap-2">
            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30">
              G
@@ -177,8 +176,8 @@ export default function Navbar() {
         </Link>
       </nav>
 
-      {/* --- MOBILE BOTTOM NAVIGATION --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe">
+      {/* --- MOBILE BOTTOM NAVIGATION (ANIMATED) --- */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
         <div className="flex justify-around items-center h-16 px-1">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.path;
@@ -186,22 +185,48 @@ export default function Navbar() {
               <Link 
                 key={link.path} 
                 to={link.path} 
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${isActive ? 'text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`relative flex flex-col items-center justify-center w-full h-full`}
               >
-                {/* Render Icon Dinamis */}
-                {link.icon(isActive)}
-                
-                <span className="text-[10px] font-bold">
-                  {link.label}
-                </span>
+                {/* 1. Animated Pill Background */}
+                {isActive && (
+                  <motion.div
+                    layoutId="mobile-bottom-nav"
+                    className="absolute inset-x-2 top-2 bottom-2 bg-orange-50 rounded-2xl -z-10"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+
+                {/* 2. Animated Icon Container */}
+                <motion.div
+                  className={`flex flex-col items-center justify-center space-y-0.5 ${isActive ? 'text-orange-600' : 'text-gray-400'}`}
+                  whileTap={{ scale: 0.8 }} // Efek mengecil saat disentuh
+                  animate={{ 
+                    y: isActive ? -2 : 0, // Sedikit naik jika aktif
+                    scale: isActive ? 1.1 : 1 // Sedikit membesar jika aktif
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  {/* Icon */}
+                  {link.icon(isActive)}
+                  
+                  {/* Label (Optional: bisa dihilangkan jika ingin lebih minimalis) */}
+                  <span className="text-[9px] font-bold tracking-wide">
+                    {link.label}
+                  </span>
+                </motion.div>
+
+                {/* 3. Dot Indicator (Opsional, penanda tambahan) */}
+                {isActive && (
+                  <motion.div 
+                    layoutId="mobile-dot"
+                    className="absolute bottom-1 w-1 h-1 bg-orange-500 rounded-full"
+                  />
+                )}
               </Link>
             );
           })}
         </div>
       </nav>
-
-      {/* Spacer agar konten tidak tertutup Top/Bottom Bar */}
-
     </>
   );
 }
