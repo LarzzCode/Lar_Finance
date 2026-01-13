@@ -88,6 +88,15 @@ export default function Navbar() {
       )
     },
     { 
+      path: '/savings', 
+      label: 'Impian', 
+      icon: (active) => (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    { 
       path: '/categories', 
       label: 'Kategori', 
       icon: (active) => (
@@ -131,7 +140,7 @@ export default function Navbar() {
 
             {/* Menu */}
             <div className="flex space-x-1 items-center">
-              {navLinks.slice(0, 5).map((link) => {
+              {navLinks.filter(link => link.path !== '/profile').map((link) => {
                 const isActive = location.pathname === link.path;
                 return (
                   <Link key={link.path} to={link.path} className={`relative px-4 py-2 rounded-full text-sm font-bold transition-colors ${isActive ? 'text-orange-600' : 'text-gray-600 hover:text-gray-900'}`}>

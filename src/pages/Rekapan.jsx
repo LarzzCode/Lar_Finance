@@ -11,8 +11,8 @@ import EditModal from '../components/EditModal';
 
 // --- KOMPONEN CHART CUSTOM ---
 
-// 1. Render Shape untuk Pie Chart saat di-Hover (Membesar)
-const renderActiveShape = (props) => {
+// 1. Render Active Shape (HANYA UNTUK DESKTOP)
+const renderActiveShapeDesktop = (props) => {
   const RADIAN = Math.PI / 180;
   const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
   const sin = Math.sin(-midAngle * RADIAN);
@@ -48,6 +48,19 @@ const renderActiveShape = (props) => {
   );
 };
 
+// 2. Render Active Shape (MOBILE: Cuma membesar dikit, tanpa teks terbang)
+const renderActiveShapeMobile = (props) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+  return (
+    <g>
+      <Sector
+        cx={cx} cy={cy} innerRadius={innerRadius} outerRadius={outerRadius + 5}
+        startAngle={startAngle} endAngle={endAngle} fill={fill}
+      />
+    </g>
+  );
+};
+
 export default function Rekapan() {
   const [filter, setFilter] = useState('monthly');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -57,20 +70,28 @@ export default function Rekapan() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [typeFilter, setTypeFilter] = useState('all'); 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
   
   // Data Chart
-  const [chartData, setChartData] = useState([]); // Pie
-  const [dailyData, setDailyData] = useState([]); // Area
-  const [activeIndex, setActiveIndex] = useState(0); // Untuk Pie Chart Hover
+  const [chartData, setChartData] = useState([]); 
+  const [dailyData, setDailyData] = useState([]); 
+  const [activeIndex, setActiveIndex] = useState(0); 
 
   const [sortConfig, setSortConfig] = useState({ key: 'transaction_date', direction: 'desc' });
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+  // DETEKSI UKURAN LAYAR (Untuk Responsif Chart)
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -107,7 +128,6 @@ export default function Rekapan() {
     }
   };
 
-  // --- LOGIKA DATA PROCESSING ---
   const processSummary = (data) => {
     let inc = 0, exp = 0;
     data.forEach(t => {
@@ -118,32 +138,27 @@ export default function Rekapan() {
   };
 
   const processChartData = (data) => {
-    // 1. PIE CHART DATA (Expense Categories)
     const expenseOnly = data.filter(t => t.categories?.type === 'expense');
     const groupedCategory = expenseOnly.reduce((acc, curr) => {
       const catName = curr.categories?.name || 'Lainnya';
       acc[catName] = (acc[catName] || 0) + Number(curr.amount);
       return acc;
     }, {});
-    // Urutkan dari terbesar agar Pie Chart rapi
     const pieArray = Object.keys(groupedCategory)
         .map(key => ({ name: key, value: groupedCategory[key] }))
         .sort((a, b) => b.value - a.value);
     
     setChartData(pieArray);
 
-    // 2. AREA CHART DATA (Daily Trend)
     const groupedDate = data.reduce((acc, curr) => {
-      const date = format(new Date(curr.transaction_date), 'dd/MM'); // Format tgl pendek
+      const date = format(new Date(curr.transaction_date), 'dd/MM');
       if (!acc[date]) acc[date] = { date, income: 0, expense: 0 };
       if (curr.categories?.type === 'income') acc[date].income += Number(curr.amount);
       else acc[date].expense += Number(curr.amount);
       return acc;
     }, {});
     
-    // Sort array by date (penting untuk Area Chart)
     const barArray = Object.values(groupedDate).sort((a, b) => {
-        // Trik simple sort tanggal dd/MM
         const [dA, mA] = a.date.split('/');
         const [dB, mB] = b.date.split('/');
         return new Date(2024, mA-1, dA) - new Date(2024, mB-1, dB);
@@ -151,7 +166,6 @@ export default function Rekapan() {
     setDailyData(barArray);
   };
 
-  // --- LOGIKA FILTER & SORT ---
   const filteredData = transactions.filter((t) => {
     const query = searchQuery.toLowerCase();
     const desc = (t.description || '').toLowerCase();
@@ -180,7 +194,6 @@ export default function Rekapan() {
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const paginatedData = sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // --- ACTIONS ---
   const handleExport = () => {
     const dataToExport = sortedData.map((t, index) => {
       const dateObj = new Date(t.transaction_date);
@@ -214,12 +227,10 @@ export default function Rekapan() {
     setSortConfig({ key, direction });
   };
 
-  // HELPER UI
   const rupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
   const formatDate = (dateString) => format(new Date(dateString), 'dd/MM/yyyy');
   const getBadgeColor = (type) => type === 'income' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700';
 
-  // Custom Tooltip untuk Area Chart
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -232,6 +243,9 @@ export default function Rekapan() {
     }
     return null;
   };
+
+  // Helper untuk menampilkan Data Tengah Donut (Mobile Only)
+  const activeItem = chartData[activeIndex] || {};
 
   return (
     <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 md:pt-24 md:pb-8">
@@ -246,7 +260,7 @@ export default function Rekapan() {
                 <p className="text-sm text-gray-400">Analisis cashflow mendalam.</p>
             </div>
             <button onClick={handleExport} className="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:bg-black transition-all">
-                Export .XLSX
+                Export
             </button>
           </div>
 
@@ -268,19 +282,13 @@ export default function Rekapan() {
         </div>
       </div>
 
-      {/* SUMMARY CARDS (Minimalist) */}
+      {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-100 relative overflow-hidden group">
-          <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <svg className="w-16 h-16 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" /></svg>
-          </div>
           <p className="text-xs text-emerald-500 font-bold uppercase tracking-wider">Total Pemasukan</p>
           <p className="text-2xl font-black text-gray-800 mt-1">{rupiah(summary.income)}</p>
         </div>
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-rose-100 relative overflow-hidden group">
-           <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <svg className="w-16 h-16 text-rose-500" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12z" /></svg>
-          </div>
           <p className="text-xs text-rose-500 font-bold uppercase tracking-wider">Total Pengeluaran</p>
           <p className="text-2xl font-black text-gray-800 mt-1">{rupiah(summary.expense)}</p>
         </div>
@@ -290,11 +298,10 @@ export default function Rekapan() {
         </div>
       </div>
 
-      {/* --- BAGIAN GRAFIK CANGGIH --- */}
       {searchQuery === '' && (
         <div className="grid lg:grid-cols-2 gap-6 mb-8">
           
-          {/* 1. AREA CHART (Gradient Flow) */}
+          {/* 1. AREA CHART */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-[400px]">
             <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
                 <span className="w-2 h-6 bg-indigo-500 rounded-full"></span>
@@ -302,7 +309,6 @@ export default function Rekapan() {
             </h3>
             <ResponsiveContainer width="100%" height="85%">
               <AreaChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                {/* Definisi Gradient Warna */}
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
@@ -323,25 +329,28 @@ export default function Rekapan() {
             </ResponsiveContainer>
           </div>
 
-          {/* 2. INTERACTIVE DONUT CHART */}
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-[400px]">
+          {/* 2. INTERACTIVE DONUT CHART (FIX MOBILE) */}
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 h-[400px] relative">
              <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
                 <span className="w-2 h-6 bg-orange-500 rounded-full"></span>
                 Komposisi Pengeluaran
             </h3>
             {chartData.length > 0 ? (
+                <>
                 <ResponsiveContainer width="100%" height="90%">
                 <PieChart>
                     <Pie
                         activeIndex={activeIndex}
-                        activeShape={renderActiveShape} // Shape yang membesar saat hover
+                        // DISINI KUNCINYA: Jika Mobile, pakai shape sederhana. Jika Desktop, pakai yg terbang.
+                        activeShape={isMobile ? renderActiveShapeMobile : renderActiveShapeDesktop} 
                         data={chartData}
                         cx="50%" cy="50%"
-                        innerRadius={70} // Bikin bolong tengah (Donut)
-                        outerRadius={90}
+                        innerRadius={isMobile ? 60 : 70} 
+                        outerRadius={isMobile ? 80 : 90}
                         paddingAngle={4}
                         dataKey="value"
-                        onMouseEnter={(_, index) => setActiveIndex(index)} // Trigger hover
+                        onMouseEnter={(_, index) => setActiveIndex(index)}
+                        onClick={(_, index) => setActiveIndex(index)} // Klik juga trigger di mobile
                     >
                     {chartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
@@ -349,6 +358,23 @@ export default function Rekapan() {
                     </Pie>
                 </PieChart>
                 </ResponsiveContainer>
+
+                {/* INFO TENGAH DONUT (KHUSUS MOBILE) */}
+                {/* Ini solusi agar tulisan tidak keluar layar */}
+                {isMobile && activeItem.name && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-6">
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wide text-center max-w-[120px] truncate">
+                            {activeItem.name}
+                        </p>
+                        <p className="text-lg font-black text-gray-800">
+                            {rupiah(activeItem.value)}
+                        </p>
+                        <p className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full mt-1">
+                            {((activeItem.value / summary.expense) * 100).toFixed(0)}%
+                        </p>
+                    </div>
+                )}
+                </>
             ) : (
                 <div className="h-full flex flex-col items-center justify-center text-gray-300">
                     <p>Belum ada pengeluaran</p>
@@ -373,7 +399,7 @@ export default function Rekapan() {
                   : 'text-gray-500 hover:bg-white hover:text-gray-700'
               }`}
             >
-              {t === 'all' ? 'Semua Transaksi' : (t === 'income' ? 'Pemasukan' : 'Pengeluaran')}
+              {t === 'all' ? 'Semua' : (t === 'income' ? 'Pemasukan' : 'Pengeluaran')}
             </button>
           ))}
         </div>
@@ -426,7 +452,7 @@ export default function Rekapan() {
           </table>
         </div>
 
-{/* MOBILE LIST */}
+        {/* MOBILE LIST (Yang sudah diperbaiki deskripsinya) */}
         <div className="md:hidden">
           <AnimatePresence>
             {paginatedData.length === 0 ? (
@@ -439,19 +465,15 @@ export default function Rekapan() {
                   className="p-5 border-b border-gray-100 flex justify-between items-center active:bg-gray-50"
                 >
                   <div className="flex items-center gap-4">
-                    {/* Ikon Tetap Sama */}
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm ${t.categories?.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                      {t.categories?.type === 'income' ? '💰' : '🛍️'}
+                      {t.categories?.type === 'income' ? '💰' : '💸'}
                     </div>
-                    
-                    {/* --- PERUBAHAN DISINI --- */}
                     <div>
-                      {/* 1. Deskripsi jadi Judul Utama (Tebal) */}
+                      {/* Deskripsi Jadi Judul Utama (Bold) */}
                       <p className="font-bold text-gray-800 text-sm capitalize">
                         {t.description || 'Tanpa Keterangan'}
                       </p>
-                      
-                      {/* 2. Kategori & Tanggal jadi Subtitle (Kecil) */}
+                      {/* Kategori Jadi Subtitle */}
                       <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                         {formatDate(t.transaction_date)} • 
                         <span className="font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide">
@@ -459,16 +481,14 @@ export default function Rekapan() {
                         </span>
                       </p>
                     </div>
-                    {/* ------------------------ */}
-
                   </div>
                   <div className="text-right">
                     <p className={`font-black text-sm ${t.categories?.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {rupiah(t.amount)}
                     </p>
                     <div className="flex justify-end gap-3 mt-2">
-                      <button onClick={() => handleEdit(t)} className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Edit</button>
-                      <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-rose-500 uppercase tracking-wide">Hapus</button>
+                      <button onClick={() => handleEdit(t)} className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">EDIT</button>
+                      <button onClick={() => handleDelete(t.id)} className="text-[10px] font-bold text-rose-500 uppercase tracking-wide">HAPUS</button>
                     </div>
                   </div>
                 </motion.div>

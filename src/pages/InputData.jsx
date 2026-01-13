@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
+import AiInsight from '../components/AiInsight'; // <--- 1. IMPORT AI DISINI
 
 export default function InputData() {
   const [categories, setCategories] = useState([]);
@@ -13,6 +14,9 @@ export default function InputData() {
   
   const [displayAmount, setDisplayAmount] = useState('');
 
+  // STATE BARU: Menyimpan data transaksi untuk dibaca AI
+  const [transactions, setTransactions] = useState([]); // <--- 2. STATE TRANSAKSI
+
   const [formData, setFormData] = useState({
     transaction_date: new Date().toISOString().split('T')[0],
     category_id: '',
@@ -21,13 +25,34 @@ export default function InputData() {
     amount: ''
   });
 
+  // FETCH DATA (KATEGORI & TRANSAKSI)
   useEffect(() => {
-    const fetchCats = async () => {
-      const { data } = await supabase.from('categories').select('*').order('name');
-      if (data) setCategories(data);
-    };
-    fetchCats();
+    fetchInitialData();
   }, []);
+
+  const fetchInitialData = async () => {
+    // A. Ambil Kategori
+    const { data: catData } = await supabase.from('categories').select('*').order('name');
+    if (catData) setCategories(catData);
+
+    // B. Ambil Transaksi Bulan Ini (Untuk Data AI)
+    fetchTransactions();
+  };
+
+  // Fungsi khusus ambil transaksi
+  const fetchTransactions = async () => {
+    const start = new Date();
+    start.setDate(1); 
+    const startStr = start.toISOString().split('T')[0];
+
+    const { data: transData } = await supabase
+        .from('transactions')
+        // PERBAIKAN: Tambahkan 'transaction_date' di sini!
+        .select('id, amount, transaction_date, categories(name, type)') 
+        .gte('transaction_date', startStr); 
+    
+    if (transData) setTransactions(transData); 
+  };
 
   const filteredCategories = categories.filter(c => c.type === type);
 
@@ -72,6 +97,10 @@ export default function InputData() {
 
       setFormData({ ...formData, amount: '', description: '', category_id: '', payment_method: 'cash' });
       setDisplayAmount('');
+
+      // REFRESH AI SETELAH SUBMIT
+      // Agar insight langsung berubah jika kita boros barusan
+      fetchTransactions(); 
     }
   };
 
@@ -81,14 +110,12 @@ export default function InputData() {
   const theme = type === 'income' 
     ? { 
         text: 'text-emerald-700', 
-        // Gradient Hijau Lembut
         bgGradient: 'from-emerald-100/80 via-emerald-50/50 to-white', 
         ring: 'focus:ring-emerald-200', 
         btn: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20' 
       }
     : { 
         text: 'text-rose-700', 
-        // Gradient Merah Lembut
         bgGradient: 'from-rose-100/80 via-rose-50/50 to-white', 
         ring: 'focus:ring-rose-200', 
         btn: 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20' 
@@ -99,17 +126,15 @@ export default function InputData() {
       
       {/* --- LAYER 0: BACKGROUND COMPLEX --- */}
       <div className="absolute inset-0 w-full h-full z-0">
-        
-        {/* 1. Base Gradient (Warna Cahaya dari Atas) */}
         <div className={`absolute inset-0 w-full h-[70%] bg-gradient-to-b transition-colors duration-700 ease-in-out ${theme.bgGradient}`} />
-        
-        {/* 2. Grid Pattern Overlay (Efek Kotak-kotak Halus) */}
-        {/* Menggunakan CSS gradient untuk membuat garis tipis */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
       </div>
 
+        <AiInsight transactions={transactions} />
       {/* --- LAYER 1: KONTEN UTAMA --- */}
       <div className="w-full max-w-md flex flex-col items-center flex-grow z-10">
+
+        {/* --- 3. PASANG KOMPONEN AI DISINI (POSISI PALING ATAS) --- */}
 
         {/* SWITCHER */}
         <div className="w-full max-w-xs bg-white/60 p-1 rounded-2xl flex relative mb-6 border border-white/60 shadow-sm backdrop-blur-sm">
@@ -235,7 +260,9 @@ export default function InputData() {
                 ) : (
                   <>
                     <span>Simpan</span>
-                    
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 opacity-90" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
                   </>
                 )}
               </motion.button>
