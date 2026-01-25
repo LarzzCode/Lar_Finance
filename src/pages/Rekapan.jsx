@@ -22,23 +22,19 @@ const renderActiveShapeMobile = (props) => {
 
 // --- MAIN COMPONENT ---
 export default function Rekapan() {
-  // 1. STATE & FILTER
   const [filter, setFilter] = useState('monthly'); 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchQuery, setSearchQuery] = useState('');
   
-  // 2. VIEW MODE
   const [viewMode, setViewMode] = useState('report'); 
   const [reportType, setReportType] = useState('daily'); 
 
-  // 3. DATA
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 });
   const [chartData, setChartData] = useState([]); 
   const [dailyData, setDailyData] = useState([]); 
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // 4. UTILS
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -57,7 +53,6 @@ export default function Rekapan() {
     fetchData();
   }, [filter, selectedDate]);
 
-  // --- LOGIC FETCH DATA ---
   const fetchData = async () => {
     const targetDate = new Date(selectedDate);
     let start, end;
@@ -99,7 +94,6 @@ export default function Rekapan() {
   };
 
   const processChartData = (data) => {
-    // Pie Chart
     const expenseOnly = data.filter(t => t.categories?.type === 'expense');
     const groupedCategory = expenseOnly.reduce((acc, curr) => {
       const catName = Array.isArray(curr.categories) ? curr.categories[0]?.name : curr.categories?.name;
@@ -112,7 +106,6 @@ export default function Rekapan() {
         .sort((a, b) => b.value - a.value);
     setChartData(pieArray);
 
-    // Area Chart
     const groupedDate = data.reduce((acc, curr) => {
       const date = format(new Date(curr.transaction_date), 'dd/MM');
       if (!acc[date]) acc[date] = { date, income: 0, expense: 0 };
@@ -129,7 +122,6 @@ export default function Rekapan() {
     setDailyData(barArray);
   };
 
-  // --- LOGIC SMART REPORT (TIMELINE) ---
   const groupedReportData = useMemo(() => {
     const expenseData = transactions.filter(t => t.categories?.type === 'expense');
     const groups = expenseData.reduce((acc, t) => {
@@ -157,14 +149,11 @@ export default function Rekapan() {
         if (!acc[key]) {
             acc[key] = { key, label, subLabel, icon, total: 0, categories: {} };
         }
-
         const amount = Number(t.amount);
         acc[key].total += amount;
-
         const catName = Array.isArray(t.categories) ? t.categories[0]?.name : t.categories?.name;
         const cKey = catName || 'Lainnya';
         acc[key].categories[cKey] = (acc[key].categories[cKey] || 0) + amount;
-
         return acc;
     }, {});
 
@@ -176,10 +165,8 @@ export default function Rekapan() {
                 .sort((a, b) => b.amount - a.amount);
             return { ...group, categoryList: catArray };
         });
-
   }, [transactions, reportType]);
 
-  // --- LOGIC TABLE ---
   const filteredData = transactions.filter((t) => {
     const query = searchQuery.toLowerCase();
     const desc = (t.description || '').toLowerCase();
@@ -213,46 +200,49 @@ export default function Rekapan() {
     <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 md:pt-28 md:pb-12 font-sans text-gray-800">
       <EditModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} transaction={editData} onSuccess={fetchData} />
 
-      {/* HEADER (FIXED: STATIC POSITION - TIDAK MENGIKUTI SCROLL) */}
-      <div className="bg-white p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mb-8 relative">
+      {/* HEADER (STATIC & RESPONSIVE) */}
+      <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mb-6 relative">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h2 className="text-3xl font-black bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Laporan Keuangan</h2>
-                <p className="text-sm font-medium text-gray-400 mt-1">Pantau kesehatan cashflow-mu.</p>
+                <h2 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Laporan Keuangan</h2>
+                <p className="text-xs md:text-sm font-medium text-gray-400 mt-1">Pantau kesehatan cashflow-mu.</p>
             </div>
-            <div className="flex gap-2 items-center bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                 <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-transparent text-xs font-bold text-gray-600 outline-none px-2 cursor-pointer hover:text-indigo-600 transition-colors">
-                    <option value="weekly">Minggu Ini</option>
-                    <option value="monthly">Bulan Ini</option>
-                    <option value="yearly">Tahun Ini</option>
-                  </select>
-                 <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                 <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-xs font-bold text-gray-600 outline-none px-2 cursor-pointer" />
-                 <button onClick={handleExport} className="ml-2 bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-gray-900/20 hover:scale-105 transition-transform">
-                    Export
+            
+            {/* Control Group: Stack on Mobile, Row on Desktop */}
+            <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2 sm:items-center bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                 <div className="flex gap-2 w-full sm:w-auto">
+                    <select value={filter} onChange={(e) => setFilter(e.target.value)} className="flex-1 sm:flex-none bg-white p-2 rounded-xl text-xs font-bold text-gray-600 outline-none border border-gray-200">
+                        <option value="weekly">Minggu Ini</option>
+                        <option value="monthly">Bulan Ini</option>
+                        <option value="yearly">Tahun Ini</option>
+                    </select>
+                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 sm:flex-none bg-white p-2 rounded-xl text-xs font-bold text-gray-600 outline-none border border-gray-200" />
+                 </div>
+                 <button onClick={handleExport} className="w-full sm:w-auto bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-gray-900/20 hover:scale-105 transition-transform">
+                    Export Excel
                  </button>
             </div>
         </div>
         
-        {/* SUMMARY CARDS (MODERN) */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
+        {/* SUMMARY CARDS (STACK ON MOBILE) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
             {[
                 { label: 'Pemasukan', amount: summary.income, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
                 { label: 'Pengeluaran', amount: summary.expense, color: 'text-rose-600', bg: 'bg-rose-500/10' },
                 { label: 'Sisa Saldo', amount: summary.balance, color: summary.balance < 0 ? 'text-red-600' : 'text-blue-600', bg: 'bg-blue-500/10' },
             ].map((item, idx) => (
-                <div key={idx} className={`p-5 rounded-3xl ${item.bg} flex flex-col justify-center items-start min-h-[100px] transition-transform hover:scale-[1.02]`}>
-                    <p className="text-[10px] md:text-xs font-black uppercase tracking-wider opacity-60 mb-1">{item.label}</p>
-                    <p className={`text-lg md:text-2xl font-black ${item.color} truncate w-full`}>{rupiah(item.amount)}</p>
+                <div key={idx} className={`p-5 rounded-3xl ${item.bg} flex flex-col justify-center items-start min-h-[90px] transition-transform hover:scale-[1.01]`}>
+                    <p className="text-[10px] font-black uppercase tracking-wider opacity-60 mb-1">{item.label}</p>
+                    <p className={`text-xl md:text-2xl font-black ${item.color} truncate w-full`}>{rupiah(item.amount)}</p>
                 </div>
             ))}
         </div>
       </div>
 
-      {/* GRAPHIC AREA (Modern Cards) */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+      {/* GRAPHIC AREA (STACK ON MOBILE) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Trend Chart */}
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 h-[400px]">
+          <div className="bg-white p-5 md:p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 h-[350px] md:h-[400px]">
             <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2 text-lg">
                 <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 text-sm">📈</div>
                 Trend Cashflow
@@ -264,8 +254,8 @@ export default function Rekapan() {
                   <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#EF4444" stopOpacity={0.3}/><stop offset="95%" stopColor="#EF4444" stopOpacity={0}/></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#9CA3AF'}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#9CA3AF'}} tickFormatter={(val)=>`${val/1000}k`} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9CA3AF'}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#9CA3AF'}} tickFormatter={(val)=>`${val/1000}k`} width={35} />
                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)' }} />
                 <Area type="monotone" dataKey="income" stroke="#10B981" strokeWidth={3} fill="url(#colorIncome)" />
                 <Area type="monotone" dataKey="expense" stroke="#EF4444" strokeWidth={3} fill="url(#colorExpense)" />
@@ -274,60 +264,60 @@ export default function Rekapan() {
           </div>
           
           {/* Pie Chart */}
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 h-[400px] relative">
+          <div className="bg-white p-5 md:p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 h-[350px] md:h-[400px] relative">
             <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2 text-lg">
                 <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 text-sm">🍩</div>
                 Komposisi Pengeluaran
             </h3>
             <ResponsiveContainer width="100%" height="85%">
               <PieChart>
-                <Pie activeIndex={activeIndex} activeShape={isMobile ? renderActiveShapeMobile : undefined} data={chartData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={4} dataKey="value" onMouseEnter={(_, i) => setActiveIndex(i)}>
+                <Pie activeIndex={activeIndex} activeShape={isMobile ? renderActiveShapeMobile : undefined} data={chartData} cx="50%" cy="50%" innerRadius={isMobile ? 60 : 70} outerRadius={isMobile ? 80 : 90} paddingAngle={4} dataKey="value" onMouseEnter={(_, i) => setActiveIndex(i)}>
                   {chartData.map((_, i) => <Cell key={`c-${i}`} fill={COLORS[i % COLORS.length]} stroke="none" />)}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
              {/* Floating Center Text */}
              {activeItem.name && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-10">
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{activeItem.name}</p>
-                    <p className="text-xl font-black text-gray-800">{rupiah(activeItem.value)}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-8 md:mt-10 px-4 text-center">
+                    <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest truncate max-w-full">{activeItem.name}</p>
+                    <p className="text-lg md:text-xl font-black text-gray-800">{rupiah(activeItem.value)}</p>
                 </div>
             )}
           </div>
       </div>
 
-      {/* 3. SECTION ANALISIS & DATA (PREMIUM LOOK) */}
+      {/* 3. SECTION ANALISIS & DATA */}
       <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgb(0,0,0,0.05)] border border-gray-100 overflow-hidden min-h-[600px] relative">
         
-        {/* FLOATING TABS */}
-        <div className="flex justify-center pt-8 pb-6 bg-white z-20 relative">
-            <div className="bg-gray-100/80 p-1.5 rounded-2xl flex gap-1 relative">
+        {/* FLOATING TABS (Responsive Width) */}
+        <div className="flex justify-center pt-8 pb-6 bg-white z-20 relative px-4">
+            <div className="bg-gray-100/80 p-1 rounded-2xl flex gap-1 relative w-full sm:w-auto">
                 {/* Active Indicator */}
                 <motion.div 
                     layoutId="activeTab"
-                    className={`absolute inset-y-1.5 bg-white shadow-sm rounded-xl z-10 ${viewMode === 'report' ? 'left-1.5 w-[calc(50%-6px)]' : 'left-[calc(50%+2px)] w-[calc(50%-6px)]'}`}
+                    className={`absolute inset-y-1 bg-white shadow-sm rounded-xl z-10 ${viewMode === 'report' ? 'left-1 w-[calc(50%-4px)]' : 'left-[calc(50%+2px)] w-[calc(50%-4px)]'}`}
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
                 <button 
                     onClick={() => setViewMode('report')}
-                    className={`relative z-20 px-8 py-2.5 text-sm font-bold rounded-xl transition-colors ${viewMode === 'report' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                    className={`relative z-20 flex-1 sm:flex-none px-4 sm:px-8 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-colors text-center ${viewMode === 'report' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    📊 Analisis Timeline
+                    Analisis Timeline
                 </button>
                 <button 
                     onClick={() => setViewMode('table')}
-                    className={`relative z-20 px-8 py-2.5 text-sm font-bold rounded-xl transition-colors ${viewMode === 'table' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                    className={`relative z-20 flex-1 sm:flex-none px-4 sm:px-8 py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-colors text-center ${viewMode === 'table' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                    📝 Data Tabel
+                    Data Tabel
                 </button>
             </div>
         </div>
 
         {/* --- MODE 1: ANALISIS DETAIL (TIMELINE STYLE) --- */}
         {viewMode === 'report' && (
-            <div className="px-6 pb-12 md:px-12">
-                {/* Sub-Filter (Capsule) */}
-                <div className="flex justify-center gap-2 mb-10">
+            <div className="px-4 md:px-12 pb-12">
+                {/* Sub-Filter (Horizontal Scroll on Mobile) */}
+                <div className="flex justify-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                     {[
                         { id: 'daily', label: 'Hari' },
                         { id: 'weekly', label: 'Minggu' },
@@ -336,7 +326,7 @@ export default function Rekapan() {
                         <button 
                             key={type.id} 
                             onClick={() => setReportType(type.id)}
-                            className={`px-5 py-2 rounded-full text-xs font-bold border transition-all ${reportType === type.id ? 'bg-gray-900 text-white border-gray-900 shadow-lg scale-105' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                            className={`px-4 md:px-5 py-2 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${reportType === type.id ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
                         >
                             {type.label}
                         </button>
@@ -344,9 +334,9 @@ export default function Rekapan() {
                 </div>
 
                 {/* TIMELINE LIST */}
-                <div className="relative border-l-2 border-gray-100 ml-4 md:ml-6 space-y-10">
+                <div className="relative border-l-2 border-gray-100 ml-2 md:ml-6 space-y-8 md:space-y-10">
                     {groupedReportData.length === 0 ? (
-                        <div className="pl-10 py-10 text-gray-400 italic">Belum ada data pengeluaran.</div>
+                        <div className="pl-6 py-10 text-gray-400 italic text-sm">Belum ada data pengeluaran.</div>
                     ) : (
                         groupedReportData.map((group, index) => (
                             <motion.div 
@@ -354,23 +344,24 @@ export default function Rekapan() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: index * 0.1 }}
                                 key={group.key} 
-                                className="relative pl-8 md:pl-12"
+                                className="relative pl-6 md:pl-12"
                             >
                                 {/* Timeline Dot */}
                                 <div className="absolute -left-[9px] top-0 w-[18px] h-[18px] bg-white border-4 border-indigo-500 rounded-full shadow-sm z-10"></div>
                                 
                                 {/* Card Content */}
-                                <div className="bg-white p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-50 hover:shadow-[0_10px_30px_rgb(0,0,0,0.06)] transition-shadow">
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-50 pb-4">
+                                <div className="bg-white p-5 md:p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-50 hover:shadow-[0_10px_30px_rgb(0,0,0,0.06)] transition-shadow">
+                                    {/* Responsive Flex: Col on Mobile, Row on Desktop */}
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 border-b border-gray-50 pb-4 gap-2">
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xl">{group.icon}</span>
-                                                <span className="text-xs font-bold text-indigo-500 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded-md">{group.subLabel}</span>
+                                                <span className="text-lg md:text-xl">{group.icon}</span>
+                                                <span className="text-[10px] md:text-xs font-bold text-indigo-500 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded-md">{group.subLabel}</span>
                                             </div>
-                                            <h4 className="text-xl font-black text-gray-800 capitalize">{group.label}</h4>
+                                            <h4 className="text-lg md:text-xl font-black text-gray-800 capitalize">{group.label}</h4>
                                         </div>
-                                        <div className="mt-2 md:mt-0 text-right">
-                                            <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-500">
+                                        <div className="text-left sm:text-right w-full sm:w-auto">
+                                            <p className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-500">
                                                 {rupiah(group.total)}
                                             </p>
                                         </div>
@@ -382,11 +373,11 @@ export default function Rekapan() {
                                             const percent = (cat.amount / group.total) * 100;
                                             return (
                                                 <div key={idx}>
-                                                    <div className="flex justify-between text-sm font-bold text-gray-700 mb-1.5">
+                                                    <div className="flex justify-between text-xs md:text-sm font-bold text-gray-700 mb-1.5">
                                                         <span>{cat.name}</span>
                                                         <span>{rupiah(cat.amount)}</span>
                                                     </div>
-                                                    <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                                    <div className="h-2 md:h-3 w-full bg-gray-100 rounded-full overflow-hidden shadow-inner">
                                                         <motion.div 
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${percent}%` }}
@@ -406,42 +397,43 @@ export default function Rekapan() {
             </div>
         )}
 
-        {/* --- MODE 2: TABEL (CLEAN LOOK) --- */}
+        {/* --- MODE 2: TABEL (RESPONSIVE SCROLL) --- */}
         {viewMode === 'table' && (
-            <div className="p-6">
+            <div className="p-4 md:p-6">
                  <div className="mb-6 relative">
                     <input 
                         type="text" placeholder="Cari transaksi..." 
-                        className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
+                        className="w-full p-4 pl-12 bg-gray-50 border-none rounded-2xl text-xs md:text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-100 transition-all"
                         value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                     />
                     <span className="absolute left-4 top-4 text-gray-400">🔍</span>
                  </div>
-                 <div className="overflow-hidden rounded-2xl border border-gray-100">
+                 {/* Horizontal Scroll wrapper for Table */}
+                 <div className="overflow-x-auto rounded-2xl border border-gray-100">
                     <table className="min-w-full">
                         <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold">
                             <tr>
-                                <th className="px-6 py-4 text-left">Tanggal</th>
-                                <th className="px-6 py-4 text-left">Detail</th>
-                                <th className="px-6 py-4 text-right">Nominal</th>
-                                <th className="px-6 py-4 text-center">Aksi</th>
+                                <th className="px-4 md:px-6 py-4 text-left whitespace-nowrap">Tanggal</th>
+                                <th className="px-4 md:px-6 py-4 text-left whitespace-nowrap">Detail</th>
+                                <th className="px-4 md:px-6 py-4 text-right whitespace-nowrap">Nominal</th>
+                                <th className="px-4 md:px-6 py-4 text-center whitespace-nowrap">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {paginatedData.map((t) => (
                                 <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-bold text-gray-500">{format(new Date(t.transaction_date), 'dd MMM yyyy')}</td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-bold text-gray-800">{t.description}</p>
+                                    <td className="px-4 md:px-6 py-4 text-xs md:text-sm font-bold text-gray-500 whitespace-nowrap">{format(new Date(t.transaction_date), 'dd MMM yyyy')}</td>
+                                    <td className="px-4 md:px-6 py-4 min-w-[150px]">
+                                        <p className="text-xs md:text-sm font-bold text-gray-800 truncate max-w-[150px]">{t.description}</p>
                                         <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded-md text-gray-500 font-bold uppercase tracking-wide">
                                             {Array.isArray(t.categories) ? t.categories[0]?.name : t.categories?.name}
                                         </span>
                                     </td>
-                                    <td className={`px-6 py-4 text-sm font-black text-right ${t.categories?.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    <td className={`px-4 md:px-6 py-4 text-xs md:text-sm font-black text-right whitespace-nowrap ${t.categories?.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
                                         {rupiah(t.amount)}
                                     </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <div className="flex justify-center gap-3">
+                                    <td className="px-4 md:px-6 py-4 text-center">
+                                        <div className="flex justify-center gap-2">
                                             <button onClick={() => { setEditData(t); setIsEditOpen(true); }} className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-500 hover:bg-indigo-100 flex items-center justify-center transition-colors">✎</button>
                                             <button onClick={() => handleDelete(t.id)} className="w-8 h-8 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100 flex items-center justify-center transition-colors">✕</button>
                                         </div>
@@ -452,7 +444,7 @@ export default function Rekapan() {
                     </table>
                  </div>
                  {/* Pagination */}
-                 <div className="mt-6 flex justify-center gap-4 items-center">
+                 <div className="mt-6 flex justify-center gap-2 md:gap-4 items-center">
                     <button disabled={currentPage===1} onClick={()=>setCurrentPage(c=>c-1)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors">Prev</button>
                     <span className="text-xs font-bold text-gray-400">Hal {currentPage} / {totalPages}</span>
                     <button disabled={currentPage>=totalPages} onClick={()=>setCurrentPage(c=>c+1)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors">Next</button>
