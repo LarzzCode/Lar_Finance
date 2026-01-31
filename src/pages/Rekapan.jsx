@@ -6,11 +6,9 @@ import {
   PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Sector 
 } from 'recharts';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import { motion, AnimatePresence } from 'framer-motion'; 
 import EditModal from '../components/EditModal';
 
-// --- HELPER CHART ---
 const renderActiveShapeMobile = (props) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
   return (
@@ -20,7 +18,6 @@ const renderActiveShapeMobile = (props) => {
   );
 };
 
-// --- MAIN COMPONENT ---
 export default function Rekapan() {
   const [filter, setFilter] = useState('monthly'); 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -182,15 +179,99 @@ export default function Rekapan() {
       fetchData();
     }
   };
+
+  // --- EXPORT MODERN CLEAN (SPLIT CATEGORY & DESCRIPTION) ---
   const handleExport = () => {
-    const dataToExport = transactions.map((t, index) => ({
-      'No': index + 1, 'Date': t.transaction_date, 'Description': t.description, 
-      'Nominal': t.amount, 'Type': t.categories?.type
-    }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataToExport), "Laporan");
-    XLSX.writeFile(wb, "Laporan_Keuangan.xlsx");
-    toast.success('Downloaded!');
+    try {
+        const styles = `
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; }
+                .title { font-size: 18px; font-weight: bold; text-align: center; color: #111827; height: 40px; }
+                .subtitle { font-size: 12px; text-align: center; color: #6b7280; margin-bottom: 20px; }
+                table { border-collapse: collapse; width: 100%; }
+                th { background-color: #1f2937; color: #ffffff; border: 1px solid #374151; padding: 12px; text-align: center; }
+                td { border: 1px solid #e5e7eb; padding: 10px; vertical-align: middle; }
+                .inc { color: #059669; font-weight: bold; }
+                .exp { color: #dc2626; font-weight: bold; }
+                .cat { font-weight: bold; color: #1f2937; } /* Style Kategori */
+                .desc { color: #4b5563; font-style: italic; } /* Style Deskripsi */
+                .summary-box { background-color: #f3f4f6; font-weight: bold; border: 1px solid #d1d5db; }
+                .align-right { text-align: right; }
+                .align-center { text-align: center; }
+            </style>
+        `;
+
+        // Total kolom sekarang = 6
+        let html = `
+            <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+            <head>
+                <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+                ${styles}
+            </head>
+            <body>
+                <table>
+                    <tr><td colspan="6" class="title">LAPORAN KEUANGAN LARFINANCE</td></tr>
+                    <tr><td colspan="6" class="subtitle">Periode: ${filter.toUpperCase()} - ${format(new Date(selectedDate), 'dd MMMM yyyy')}</td></tr>
+                    <tr><td></td></tr>
+                    
+                    <tr>
+                        <td colspan="2" class="summary-box">Total Pemasukan</td>
+                        <td class="inc align-right">${rupiah(summary.income)}</td>
+                        <td colspan="2" class="summary-box">Total Pengeluaran</td>
+                        <td class="exp align-right">${rupiah(summary.expense)}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="summary-box">Sisa Saldo</td>
+                        <td colspan="4" style="color: ${summary.balance >= 0 ? '#2563eb' : '#dc2626'}; font-weight: bold; font-size: 14px; text-align: left;">
+                            ${rupiah(summary.balance)}
+                        </td>
+                    </tr>
+                    <tr><td></td></tr>
+
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>Kategori</th>   <th>Deskripsi</th>  <th>Pemasukan</th>  <th>Pengeluaran</th></tr>
+        `;
+
+        transactions.forEach((t, index) => {
+            const catName = Array.isArray(t.categories) ? t.categories[0]?.name : t.categories?.name;
+            const amount = Number(t.amount);
+            const isInc = t.categories?.type === 'income';
+            
+            html += `
+                <tr>
+                    <td class="align-center">${index + 1}</td>
+                    <td class="align-center">${format(new Date(t.transaction_date), 'dd/MM/yyyy')}</td>
+                    <td class="cat">${catName || '-'}</td>
+                    <td class="desc">${t.description || '-'}</td>
+                    <td class="align-right ${isInc ? 'inc' : ''}">${isInc ? rupiah(amount) : '-'}</td>
+                    <td class="align-right ${!isInc ? 'exp' : ''}">${!isInc ? rupiah(amount) : '-'}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </table>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Laporan_${format(new Date(), 'yyyyMMdd_HHmm')}.xls`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success('Laporan Excel Berhasil Dibuat! 📑');
+
+    } catch (e) {
+        console.error(e);
+        toast.error('Gagal membuat laporan.');
+    }
   };
 
   const rupiah = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
@@ -200,7 +281,7 @@ export default function Rekapan() {
     <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 md:pt-28 md:pb-12 font-sans text-gray-800">
       <EditModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} transaction={editData} onSuccess={fetchData} />
 
-      {/* HEADER (STATIC & RESPONSIVE) */}
+      {/* HEADER */}
       <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 mb-6 relative">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -208,7 +289,6 @@ export default function Rekapan() {
                 <p className="text-xs md:text-sm font-medium text-gray-400 mt-1">Pantau kesehatan cashflow-mu.</p>
             </div>
             
-            {/* Control Group: Stack on Mobile, Row on Desktop */}
             <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2 sm:items-center bg-gray-50 p-2 rounded-2xl border border-gray-100">
                  <div className="flex gap-2 w-full sm:w-auto">
                     <select value={filter} onChange={(e) => setFilter(e.target.value)} className="flex-1 sm:flex-none bg-white p-2 rounded-xl text-xs font-bold text-gray-600 outline-none border border-gray-200">
@@ -218,13 +298,15 @@ export default function Rekapan() {
                     </select>
                     <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 sm:flex-none bg-white p-2 rounded-xl text-xs font-bold text-gray-600 outline-none border border-gray-200" />
                  </div>
-                 <button onClick={handleExport} className="w-full sm:w-auto bg-gray-900 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-gray-900/20 hover:scale-105 transition-transform">
-                    Export Excel
+                 
+                 {/* BUTTON EXPORT */}
+                 <button onClick={handleExport} className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                    <span>📑</span> Export Laporan
                  </button>
             </div>
         </div>
         
-        {/* SUMMARY CARDS (STACK ON MOBILE) */}
+        {/* SUMMARY CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
             {[
                 { label: 'Pemasukan', amount: summary.income, color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
@@ -239,9 +321,8 @@ export default function Rekapan() {
         </div>
       </div>
 
-      {/* GRAPHIC AREA (STACK ON MOBILE) */}
+      {/* GRAPHIC AREA */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Trend Chart */}
           <div className="bg-white p-5 md:p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 h-[350px] md:h-[400px]">
             <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2 text-lg">
                 <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 text-sm">📈</div>
@@ -263,7 +344,6 @@ export default function Rekapan() {
             </ResponsiveContainer>
           </div>
           
-          {/* Pie Chart */}
           <div className="bg-white p-5 md:p-6 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 h-[350px] md:h-[400px] relative">
             <h3 className="font-bold text-gray-700 mb-2 flex items-center gap-2 text-lg">
                 <div className="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 text-sm">🍩</div>
@@ -276,7 +356,6 @@ export default function Rekapan() {
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
-             {/* Floating Center Text */}
              {activeItem.name && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-8 md:mt-10 px-4 text-center">
                     <p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-widest truncate max-w-full">{activeItem.name}</p>
@@ -286,13 +365,10 @@ export default function Rekapan() {
           </div>
       </div>
 
-      {/* 3. SECTION ANALISIS & DATA */}
+      {/* SECTION ANALISIS */}
       <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgb(0,0,0,0.05)] border border-gray-100 overflow-hidden min-h-[600px] relative">
-        
-        {/* FLOATING TABS (Responsive Width) */}
         <div className="flex justify-center pt-8 pb-6 bg-white z-20 relative px-4">
             <div className="bg-gray-100/80 p-1 rounded-2xl flex gap-1 relative w-full sm:w-auto">
-                {/* Active Indicator */}
                 <motion.div 
                     layoutId="activeTab"
                     className={`absolute inset-y-1 bg-white shadow-sm rounded-xl z-10 ${viewMode === 'report' ? 'left-1 w-[calc(50%-4px)]' : 'left-[calc(50%+2px)] w-[calc(50%-4px)]'}`}
@@ -313,10 +389,9 @@ export default function Rekapan() {
             </div>
         </div>
 
-        {/* --- MODE 1: ANALISIS DETAIL (TIMELINE STYLE) --- */}
+        {/* MODE: TIMELINE */}
         {viewMode === 'report' && (
             <div className="px-4 md:px-12 pb-12">
-                {/* Sub-Filter (Horizontal Scroll on Mobile) */}
                 <div className="flex justify-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
                     {[
                         { id: 'daily', label: 'Hari' },
@@ -333,7 +408,6 @@ export default function Rekapan() {
                     ))}
                 </div>
 
-                {/* TIMELINE LIST */}
                 <div className="relative border-l-2 border-gray-100 ml-2 md:ml-6 space-y-8 md:space-y-10">
                     {groupedReportData.length === 0 ? (
                         <div className="pl-6 py-10 text-gray-400 italic text-sm">Belum ada data pengeluaran.</div>
@@ -346,12 +420,8 @@ export default function Rekapan() {
                                 key={group.key} 
                                 className="relative pl-6 md:pl-12"
                             >
-                                {/* Timeline Dot */}
                                 <div className="absolute -left-[9px] top-0 w-[18px] h-[18px] bg-white border-4 border-indigo-500 rounded-full shadow-sm z-10"></div>
-                                
-                                {/* Card Content */}
                                 <div className="bg-white p-5 md:p-6 rounded-3xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-gray-50 hover:shadow-[0_10px_30px_rgb(0,0,0,0.06)] transition-shadow">
-                                    {/* Responsive Flex: Col on Mobile, Row on Desktop */}
                                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 border-b border-gray-50 pb-4 gap-2">
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
@@ -366,8 +436,6 @@ export default function Rekapan() {
                                             </p>
                                         </div>
                                     </div>
-
-                                    {/* Categories Progress Bars */}
                                     <div className="space-y-4">
                                         {group.categoryList.map((cat, idx) => {
                                             const percent = (cat.amount / group.total) * 100;
@@ -397,7 +465,7 @@ export default function Rekapan() {
             </div>
         )}
 
-        {/* --- MODE 2: TABEL (RESPONSIVE SCROLL) --- */}
+        {/* --- MODE 2: TABEL --- */}
         {viewMode === 'table' && (
             <div className="p-4 md:p-6">
                  <div className="mb-6 relative">
@@ -408,7 +476,6 @@ export default function Rekapan() {
                     />
                     <span className="absolute left-4 top-4 text-gray-400">🔍</span>
                  </div>
-                 {/* Horizontal Scroll wrapper for Table */}
                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
                     <table className="min-w-full">
                         <thead className="bg-gray-50/50 text-gray-400 text-[10px] uppercase font-bold">
@@ -443,7 +510,6 @@ export default function Rekapan() {
                         </tbody>
                     </table>
                  </div>
-                 {/* Pagination */}
                  <div className="mt-6 flex justify-center gap-2 md:gap-4 items-center">
                     <button disabled={currentPage===1} onClick={()=>setCurrentPage(c=>c-1)} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold disabled:opacity-50 hover:bg-gray-50 transition-colors">Prev</button>
                     <span className="text-xs font-bold text-gray-400">Hal {currentPage} / {totalPages}</span>
