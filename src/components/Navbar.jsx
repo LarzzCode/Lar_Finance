@@ -1,241 +1,159 @@
-import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const { signOut, user } = useAuth(); 
-  
-  const [avatarUrl, setAvatarUrl] = useState(null);
-  const [displayName, setDisplayName] = useState(user?.email?.split('@')[0] || 'User');
-
-  // FETCH PROFIL
-  useEffect(() => {
-    const getProfile = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('id', user.id)
-        .single();
-      
-      if (data) {
-        if (data.full_name) setDisplayName(data.full_name);
-        if (data.avatar_url) setAvatarUrl(data.avatar_url);
-      }
-    };
-    getProfile();
-  }, [user, location]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const activePath = location.pathname;
 
   const handleLogout = async () => {
-    try {
-      await signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error('Gagal logout');
+    } else {
+      toast.success('Sampai jumpa! 👋');
       navigate('/login');
-    } catch (error) {
-      console.error("Gagal logout:", error);
     }
   };
 
   const navLinks = [
     { 
       path: '/', 
+      label: 'Home', 
+      icon: (active) => (
+        <svg xmlns="http://www.w3.org/2000/svg" className={`w-6 h-6 transition-all ${active ? 'fill-gray-900' : 'fill-none stroke-gray-400'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    { 
+      path: '/rekap', 
+      label: 'Laporan', 
+      icon: (active) => (
+        <svg xmlns="http://www.w3.org/2000/svg" className={`w-6 h-6 transition-all ${active ? 'fill-gray-900' : 'fill-none stroke-gray-400'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      )
+    },
+    { 
+      path: '/input', 
       label: 'Input', 
-      icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+      isFab: true, 
+      icon: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
       )
     },
     { 
-      path: '/rekapan', 
-      label: 'Rekap', 
+      path: '/wallet', 
+      label: 'Dompet', 
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <svg xmlns="http://www.w3.org/2000/svg" className={`w-6 h-6 transition-all ${active ? 'fill-gray-900' : 'fill-none stroke-gray-400'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
         </svg>
       )
     },
     { 
-      path: '/budget', 
-      label: 'Budget', 
+        path: '/profile', 
+        label: 'Profil', 
+        icon: (active) => (
+          <svg xmlns="http://www.w3.org/2000/svg" className={`w-6 h-6 transition-all ${active ? 'fill-gray-900' : 'fill-none stroke-gray-400'}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 0 : 2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        )
+    },
+    // LOGOUT HANYA UNTUK DESKTOP (isButton & desktopOnly)
+    {
+      label: 'Keluar',
+      isButton: true, 
+      desktopOnly: true, // Flag baru
+      action: handleLogout,
       icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 stroke-rose-500 hover:stroke-rose-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
       )
-    },
-    { 
-      path: '/subscriptions', 
-      label: 'Langganan', 
-      icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    { 
-      path: '/savings', 
-      label: 'Impian', 
-      icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      )
-    },
-    { 
-      path: '/categories', 
-      label: 'Kategori', 
-      icon: (active) => (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-        </svg>
-      )
-    },
-    { 
-      path: '/profile', 
-      label: 'Profil', 
-      icon: (active) => (
-        <div className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-colors duration-300 ${active ? 'border-orange-500' : 'border-gray-400'}`}>
-           {avatarUrl ? (
-             <img src={avatarUrl} alt="User" className="w-full h-full object-cover" />
-           ) : (
-             <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-               <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
-             </div>
-           )}
-        </div>
-      )
-    },
+    }
   ];
 
   return (
     <>
-      {/* --- DESKTOP NAVBAR --- */}
-      <nav className={`hidden md:block fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-200/50' : 'bg-transparent'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30">
-                G
-              </div>
-              <span className="text-2xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent tracking-tight">
-                LarFinance
-              </span>
-            </Link>
+      {/* MOBILE NAVBAR (Bottom) */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-100 pb-safe pt-2 px-4 z-50 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-between items-end pb-3">
+          {navLinks.map((link, idx) => {
+            // SKIP RENDERING JIKA BUTTON INI KHUSUS DESKTOP (LOGOUT)
+            if (link.desktopOnly) return null;
 
-            {/* Menu */}
-            <div className="flex space-x-1 items-center">
-              {navLinks.filter(link => link.path !== '/profile').map((link) => {
-                const isActive = location.pathname === link.path;
-                return (
-                  <Link key={link.path} to={link.path} className={`relative px-4 py-2 rounded-full text-sm font-bold transition-colors ${isActive ? 'text-orange-600' : 'text-gray-600 hover:text-gray-900'}`}>
-                    {isActive && <motion.div layoutId="desktop-navbar" className="absolute inset-0 bg-orange-50 rounded-full -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
-                    {link.label}
-                  </Link>
-                );
-              })}
-              
-              {/* Profile & Logout */}
-              <div className="flex items-center gap-3 pl-4 ml-2 border-l border-gray-300">
-                <Link to="/profile" className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-2 py-1.5 pr-3 rounded-full transition-colors">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="User" className="w-6 h-6 rounded-full object-cover border border-white shadow-sm" />
-                  ) : (
-                    <div className="w-6 h-6 bg-orange-200 rounded-full flex items-center justify-center">
-                      <svg className="w-3 h-3 text-orange-700" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
-                    </div>
-                  )}
-                  <span className="text-xs font-bold text-gray-700 max-w-[100px] truncate">{displayName}</span>
+            const isActive = activePath === link.path;
+            
+            if (link.isFab) {
+              return (
+                <Link to={link.path} key={idx} className="relative -top-5 group">
+                  <motion.div whileTap={{ scale: 0.9 }} className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center shadow-lg shadow-gray-900/30 ring-4 ring-white">
+                    {link.icon(true)}
+                  </motion.div>
                 </Link>
-                <button onClick={handleLogout} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors" title="Logout">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+              );
+            }
 
-      {/* --- MOBILE TOP BAR --- */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 h-16 flex items-center justify-center">
-        <Link to="/" className="flex items-center gap-2">
-           <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center text-white font-bold shadow-lg shadow-orange-500/30">
-             G
-           </div>
-           <span className="text-xl font-black bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent tracking-tight">
-             LarFinance
-           </span>
-        </Link>
-      </nav>
-
-      {/* --- MOBILE BOTTOM NAVIGATION (ANIMATED) --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.03)]">
-        <div className="flex justify-around items-center h-16 px-1">
-          {navLinks.map((link) => {
-            const isActive = location.pathname === link.path;
             return (
-              <Link 
-                key={link.path} 
-                to={link.path} 
-                className={`relative flex flex-col items-center justify-center w-full h-full`}
-              >
-                {/* 1. Animated Pill Background */}
-                {isActive && (
-                  <motion.div
-                    layoutId="mobile-bottom-nav"
-                    className="absolute inset-x-2 top-2 bottom-2 bg-orange-50 rounded-2xl -z-10"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-
-                {/* 2. Animated Icon Container */}
-                <motion.div
-                  className={`flex flex-col items-center justify-center space-y-0.5 ${isActive ? 'text-orange-600' : 'text-gray-400'}`}
-                  whileTap={{ scale: 0.8 }} // Efek mengecil saat disentuh
-                  animate={{ 
-                    y: isActive ? -2 : 0, // Sedikit naik jika aktif
-                    scale: isActive ? 1.1 : 1 // Sedikit membesar jika aktif
-                  }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  {/* Icon */}
-                  {link.icon(isActive)}
-                  
-                  {/* Label (Optional: bisa dihilangkan jika ingin lebih minimalis) */}
-                  <span className="text-[9px] font-bold tracking-wide">
-                    {link.label}
-                  </span>
-                </motion.div>
-
-                {/* 3. Dot Indicator (Opsional, penanda tambahan) */}
-                {isActive && (
-                  <motion.div 
-                    layoutId="mobile-dot"
-                    className="absolute bottom-1 w-1 h-1 bg-orange-500 rounded-full"
-                  />
-                )}
+              <Link to={link.path} key={idx} className="flex flex-col items-center gap-1 w-12 relative">
+                <div className="relative">
+                    {link.icon(isActive)}
+                    {isActive && <motion.div layoutId="nav-pill-mobile" className="absolute -top-3 left-1/2 -translate-x-1/2 w-1 h-1 bg-gray-900 rounded-full" />}
+                </div>
+                <span className={`text-[10px] font-bold ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>{link.label}</span>
               </Link>
             );
           })}
         </div>
-      </nav>
+      </div>
+
+      {/* DESKTOP NAVBAR (Floating Top) - LOGOUT MUNCUL DISINI */}
+      <div className="hidden md:flex fixed top-6 left-1/2 -translate-x-1/2 z-50">
+        <nav className="bg-white/80 backdrop-blur-2xl border border-white/50 px-2 py-2 rounded-full shadow-lg flex items-center gap-1">
+            <div className="pl-6 pr-4 border-r border-gray-100 mr-1">
+                <span className="text-lg font-black bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">LF.</span>
+            </div>
+            
+            {navLinks.map((link, idx) => {
+                const isActive = activePath === link.path;
+
+                if (link.isFab) {
+                    return (
+                        <Link to={link.path} key={idx} className="ml-2">
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="bg-gray-900 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg hover:bg-black transition-colors flex items-center gap-2">
+                                <span>+</span> Input
+                            </motion.button>
+                        </Link>
+                    )
+                }
+
+                if (link.isButton) {
+                  return (
+                    <button key={idx} onClick={link.action} className="relative px-5 py-2.5 rounded-full text-sm font-bold transition-all text-rose-500 hover:bg-rose-50 flex items-center gap-2">
+                        <span className="scale-90">{link.icon(false)}</span>
+                        {link.label}
+                    </button>
+                  )
+                }
+
+                return (
+                    <Link to={link.path} key={idx} className={`relative px-5 py-2.5 rounded-full text-sm font-bold transition-all ${isActive ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                        {isActive && <motion.div layoutId="nav-pill-desktop" className="absolute inset-0 bg-white shadow-sm border border-gray-100 rounded-full z-0" />}
+                        <span className="relative z-10 flex items-center gap-2">
+                            <span className="scale-75 opacity-70">{link.icon(isActive)}</span>
+                            {link.label}
+                        </span>
+                    </Link>
+                );
+            })}
+        </nav>
+      </div>
     </>
   );
 }

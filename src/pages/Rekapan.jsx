@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getWeek } from 'date-fns';
+// UBAH DISINI: Ganti 'getWeek' menjadi 'getWeekOfMonth'
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getWeekOfMonth } from 'date-fns';
 import { id } from 'date-fns/locale'; 
 import { 
   PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Sector 
@@ -131,8 +132,14 @@ export default function Rekapan() {
             subLabel = 'Harian';
             icon = '📅';
         } else if (reportType === 'weekly') {
-            const weekNum = getWeek(dateObj, { weekStartsOn: 1 });
-            key = `W-${weekNum}`;
+            // --- PERBAIKAN UTAMA DISINI ---
+            // Menggunakan getWeekOfMonth agar reset tiap bulan (1-5)
+            const weekNum = getWeekOfMonth(dateObj, { weekStartsOn: 1 });
+            
+            // Key harus unik per bulan, jadi gabungkan Tahun-Bulan-Minggu
+            const monthKey = format(dateObj, 'yyyy-MM');
+            key = `${monthKey}-W${weekNum}`; 
+            
             label = `Minggu ke-${weekNum}`;
             subLabel = format(dateObj, 'MMMM yyyy', { locale: id });
             icon = '📊';
@@ -155,6 +162,7 @@ export default function Rekapan() {
     }, {});
 
     return Object.values(groups)
+        // Sort agar minggu terbaru di atas
         .sort((a, b) => b.key.localeCompare(a.key))
         .map(group => {
             const catArray = Object.entries(group.categories)
@@ -180,7 +188,7 @@ export default function Rekapan() {
     }
   };
 
-  // --- EXPORT MODERN CLEAN (SPLIT CATEGORY & DESCRIPTION) ---
+  // --- EXPORT MODERN CLEAN ---
   const handleExport = () => {
     try {
         const styles = `
@@ -193,15 +201,14 @@ export default function Rekapan() {
                 td { border: 1px solid #e5e7eb; padding: 10px; vertical-align: middle; }
                 .inc { color: #059669; font-weight: bold; }
                 .exp { color: #dc2626; font-weight: bold; }
-                .cat { font-weight: bold; color: #1f2937; } /* Style Kategori */
-                .desc { color: #4b5563; font-style: italic; } /* Style Deskripsi */
+                .cat { font-weight: bold; color: #1f2937; }
+                .desc { color: #4b5563; font-style: italic; }
                 .summary-box { background-color: #f3f4f6; font-weight: bold; border: 1px solid #d1d5db; }
                 .align-right { text-align: right; }
                 .align-center { text-align: center; }
             </style>
         `;
 
-        // Total kolom sekarang = 6
         let html = `
             <html xmlns:x="urn:schemas-microsoft-com:office:excel">
             <head>

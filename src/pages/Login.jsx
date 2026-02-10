@@ -16,6 +16,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
+    // 1. Validasi Password saat Daftar
     if (isRegister && password !== confirmPassword) {
       toast.error('Password tidak sama!');
       setLoading(false);
@@ -24,8 +25,32 @@ export default function Login() {
 
     let result;
     if (isRegister) {
+      // --- LOGIKA DAFTAR (SIGN UP) ---
       result = await supabase.auth.signUp({ email, password });
+      
+      // Jika Sukses Daftar -> Buat Dompet Default
+      if (result.data?.user && !result.error) {
+        
+        // A. Buat Profil (Opsional, biar data user rapi)
+        await supabase.from('profiles').upsert({
+            id: result.data.user.id,
+            updated_at: new Date(),
+        });
+
+        // B. FITUR BARU: Buat Dompet "Tunai" Otomatis
+        const { error: walletError } = await supabase.from('wallets').insert([
+            { user_id: result.data.user.id, name: 'Tunai', saldo_awal: 0 }
+        ]);
+
+        if (walletError) {
+            console.error('Gagal buat dompet default:', walletError);
+        } else {
+            toast('Dompet "Tunai" telah dibuat!', { icon: '🎁' });
+        }
+      }
+
     } else {
+      // --- LOGIKA MASUK (SIGN IN) ---
       result = await supabase.auth.signInWithPassword({ email, password });
     }
 
@@ -36,7 +61,7 @@ export default function Login() {
     } else {
       if (isRegister) {
         toast.success('Akun berhasil dibuat! Silakan Login.');
-        setIsRegister(false);
+        setIsRegister(false); // Kembalikan ke mode login
         setEmail(''); setPassword(''); setConfirmPassword('');
       } else {
         toast.success('Login Berhasil! 🚀');
@@ -49,38 +74,33 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-100 font-sans">
       
-      {/* --- BACKGROUND DYNAMIC ORBS (Bola-bola Warna) --- */}
+      {/* --- BACKGROUND DYNAMIC ORBS --- */}
       <div className="absolute inset-0 w-full h-full">
-        {/* Bola 1 (Kiri Atas) */}
         <motion.div
           animate={{
             x: [0, 50, 0],
             y: [0, 30, 0],
             scale: [1, 1.1, 1],
-            backgroundColor: isRegister ? '#60A5FA' : '#F97316' // Biru vs Oranye
+            backgroundColor: isRegister ? '#60A5FA' : '#F97316'
           }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
           className="absolute -top-20 -left-20 w-96 h-96 rounded-full mix-blend-multiply filter blur-[100px] opacity-70"
         />
-        
-        {/* Bola 2 (Kanan Tengah) */}
         <motion.div
           animate={{
             x: [0, -30, 0],
             y: [0, 50, 0],
             scale: [1, 1.2, 1],
-            backgroundColor: isRegister ? '#818CF8' : '#EF4444' // Indigo vs Merah
+            backgroundColor: isRegister ? '#818CF8' : '#EF4444'
           }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           className="absolute top-1/4 -right-20 w-[30rem] h-[30rem] rounded-full mix-blend-multiply filter blur-[100px] opacity-70"
         />
-
-        {/* Bola 3 (Bawah Kiri) */}
         <motion.div
           animate={{
             x: [0, 40, 0],
             y: [0, -40, 0],
-            backgroundColor: isRegister ? '#2DD4BF' : '#FDBA74' // Teal vs Kuning
+            backgroundColor: isRegister ? '#2DD4BF' : '#FDBA74'
           }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 4 }}
           className="absolute -bottom-32 left-10 w-[25rem] h-[25rem] rounded-full mix-blend-multiply filter blur-[100px] opacity-70"
@@ -93,10 +113,8 @@ export default function Login() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        // KUNCI GLASSMORPHISM: bg-white/30 + backdrop-blur-xl + border-white/40
         className="relative z-10 w-full max-w-md p-8 m-4 bg-white/30 backdrop-blur-2xl border border-white/40 rounded-[2rem] shadow-2xl shadow-black/5"
       >
-        {/* Header Icon */}
         <div className="text-center mb-8">
           <motion.div 
             key={isRegister ? 'reg' : 'log'}
@@ -106,29 +124,23 @@ export default function Login() {
             className={`w-20 h-20 mx-auto mb-4 rounded-3xl flex items-center justify-center text-4xl shadow-xl bg-gradient-to-br ${isRegister ? 'from-blue-500 to-indigo-600 shadow-blue-500/30' : 'from-orange-500 to-red-600 shadow-orange-500/30'}`}
           >
             <span className="text-white font-black drop-shadow-md">
-              {isRegister ? 'G' : 'G'}
+              {isRegister ? '👋' : '🚀'}
             </span>
           </motion.div>
           
           <h1 className="text-3xl font-black text-gray-800 tracking-tight mb-2">
-            {isRegister ? 'Mulai Perjalanan' : 'Selamat Datang'}
+            {isRegister ? 'Buat Akun Baru' : 'Selamat Datang'}
           </h1>
           <p className="text-gray-600 font-medium">
-            {isRegister ? 'Buat akun dalam hitungan detik.' : 'Lanjutkan pengelolaan uangmu.'}
+            {isRegister ? 'Mulai atur keuanganmu sekarang.' : 'Lanjutkan pengelolaan uangmu.'}
           </p>
         </div>
 
-        {/* Form Inputs */}
         <form onSubmit={handleAuth} className="space-y-5">
           <div className="space-y-4">
             <div className="relative group">
               <input 
                 type="email" required placeholder="Email Address"
-                className="w-full px-5 py-4 rounded-2xl bg-white/50 border border-white/50 text-gray-800 placeholder-gray-500 focus:bg-white focus:outline-none focus:ring-4 transition-all duration-300 shadow-sm group-hover:bg-white/70"
-                style={{ 
-                  boxShadow: isRegister ? '0 0 0 0 transparent' : '0 0 0 0 transparent' // Reset default
-                }}
-                // Conditional Ring Color via Template Literal not ideal inside className string due to complexity, using tailwind classes below
                 className={`w-full px-5 py-4 rounded-2xl bg-white/50 border border-white/50 text-gray-800 placeholder-gray-500 focus:bg-white focus:outline-none focus:ring-4 transition-all duration-300 shadow-sm ${isRegister ? 'focus:ring-blue-200 focus:border-blue-300' : 'focus:ring-orange-200 focus:border-orange-300'}`}
                 value={email} onChange={(e) => setEmail(e.target.value)}
               />
@@ -171,7 +183,6 @@ export default function Login() {
           </motion.button>
         </form>
 
-        {/* Footer Toggle */}
         <div className="mt-8 text-center">
           <button 
             onClick={() => { setIsRegister(!isRegister); setConfirmPassword(''); }}
@@ -179,7 +190,7 @@ export default function Login() {
               isRegister ? 'text-blue-700 hover:bg-white/60' : 'text-orange-700 hover:bg-white/60'
             }`}
           >
-            {isRegister ? '← Kembali ke Login' : 'Belum punya akun? Daftar →'}
+            {isRegister ? '← Sudah punya akun? Login' : 'Belum punya akun? Daftar →'}
           </button>
         </div>
       </motion.div>

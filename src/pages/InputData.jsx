@@ -4,53 +4,60 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
-import AiInsight from '../components/AiInsight'; // <--- 1. IMPORT AI DISINI
+import AiInsight from '../components/AiInsight'; 
 
 export default function InputData() {
   const [categories, setCategories] = useState([]);
+  const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState('expense'); 
   const { user } = useAuth();
   
   const [displayAmount, setDisplayAmount] = useState('');
-
-  // STATE BARU: Menyimpan data transaksi untuk dibaca AI
-  const [transactions, setTransactions] = useState([]); // <--- 2. STATE TRANSAKSI
+  const [transactions, setTransactions] = useState([]); 
 
   const [formData, setFormData] = useState({
     transaction_date: new Date().toISOString().split('T')[0],
     category_id: '',
     description: '',
-    payment_method: 'cash', 
+    payment_method: '', 
     amount: ''
   });
 
-  // FETCH DATA (KATEGORI & TRANSAKSI)
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   const fetchInitialData = async () => {
-    // A. Ambil Kategori
-    const { data: catData } = await supabase.from('categories').select('*').order('name');
-    if (catData) setCategories(catData);
-
-    // B. Ambil Transaksi Bulan Ini (Untuk Data AI)
+    fetchCategories();
     fetchTransactions();
+    fetchWallets();
   };
 
-  // Fungsi khusus ambil transaksi
+  const fetchCategories = async () => {
+    const { data: catData } = await supabase.from('categories').select('*').order('name');
+    if (catData) setCategories(catData);
+  };
+
+  const fetchWallets = async () => {
+    const { data } = await supabase.from('wallets').select('*').order('created_at');
+    if (data && data.length > 0) {
+        setWallets(data);
+        setFormData(prev => ({ ...prev, payment_method: data[0].name }));
+    } else {
+        setWallets([{ id: 'def', name: 'Tunai' }]);
+        setFormData(prev => ({ ...prev, payment_method: 'Tunai' }));
+    }
+  };
+
   const fetchTransactions = async () => {
     const start = new Date();
     start.setDate(1); 
     const startStr = start.toISOString().split('T')[0];
-
     const { data: transData } = await supabase
         .from('transactions')
-        // PERBAIKAN: Tambahkan 'transaction_date' di sini!
         .select('id, amount, transaction_date, categories(name, type)') 
         .gte('transaction_date', startStr); 
-    
     if (transData) setTransactions(transData); 
   };
 
@@ -76,8 +83,7 @@ export default function InputData() {
       return;
     }
     setLoading(true);
-    if (navigator.vibrate) navigator.vibrate(50);
-
+    
     const payload = { ...formData, user_id: user?.id };
     const { error } = await supabase.from('transactions').insert([payload]);
     setLoading(false);
@@ -89,24 +95,18 @@ export default function InputData() {
         particleCount: 80, spread: 70, origin: { y: 0.8 },
         colors: type === 'income' ? ['#10B981', '#34D399'] : ['#EF4444', '#F87171']
       });
-
-      toast.success(type === 'income' ? 'Pemasukan Tersimpan!' : 'Pengeluaran Tersimpan!', {
+      toast.success('Data Tersimpan!', {
         icon: type === 'income' ? '💰' : '💸',
         style: { borderRadius: '12px', background: '#1F2937', color: '#fff' },
       });
-
-      setFormData({ ...formData, amount: '', description: '', category_id: '', payment_method: 'cash' });
+      setFormData(prev => ({ ...prev, amount: '', description: '', category_id: '' }));
       setDisplayAmount('');
-
-      // REFRESH AI SETELAH SUBMIT
-      // Agar insight langsung berubah jika kita boros barusan
       fetchTransactions(); 
     }
   };
 
   const handleChange = (e) => setFormData({...formData, [e.target.name]: e.target.value});
 
-  // THEME CONFIGURATION
   const theme = type === 'income' 
     ? { 
         text: 'text-emerald-700', 
@@ -122,22 +122,20 @@ export default function InputData() {
       };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center pt-20 pb-24 px-4 relative overflow-hidden bg-white">
+    <div className="min-h-screen w-full flex flex-col items-center pt-28 pb-24 px-4 relative overflow-hidden bg-white">
       
-      {/* --- LAYER 0: BACKGROUND COMPLEX --- */}
-      <div className="absolute inset-0 w-full h-full z-0">
+      {/* BACKGROUND */}
+      <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
         <div className={`absolute inset-0 w-full h-[70%] bg-gradient-to-b transition-colors duration-700 ease-in-out ${theme.bgGradient}`} />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
       </div>
 
-        <AiInsight transactions={transactions} />
-      {/* --- LAYER 1: KONTEN UTAMA --- */}
       <div className="w-full max-w-md flex flex-col items-center flex-grow z-10">
 
-        {/* --- 3. PASANG KOMPONEN AI DISINI (POSISI PALING ATAS) --- */}
+        <AiInsight transactions={transactions} />
 
         {/* SWITCHER */}
-        <div className="w-full max-w-xs bg-white/60 p-1 rounded-2xl flex relative mb-6 border border-white/60 shadow-sm backdrop-blur-sm">
+        <div className="w-full max-w-xs bg-white/60 p-1 rounded-2xl flex relative mb-6 border border-white/60 shadow-sm backdrop-blur-sm mt-4">
           <motion.div
             layoutId="active-pill"
             className="absolute top-1 bottom-1 rounded-xl bg-white border border-gray-100 shadow-sm z-0"
@@ -203,36 +201,37 @@ export default function InputData() {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-500 uppercase ml-3">Kategori</label>
-                <select 
-                  name="category_id" required
-                  className={`w-full px-4 py-3.5 rounded-2xl bg-gray-50 border-transparent focus:bg-white shadow-sm text-sm font-bold text-gray-700 outline-none focus:ring-2 transition-all ${theme.ring}`}
-                  value={formData.category_id}
-                  onChange={handleChange}
-                >
-                  <option value="">-- Pilih --</option>
-                  {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <div className="relative w-full">
+                    <select 
+                    name="category_id" required
+                    className={`w-full px-4 py-3.5 rounded-2xl bg-gray-50 border-transparent focus:bg-white shadow-sm text-sm font-bold text-gray-700 outline-none focus:ring-2 transition-all appearance-none cursor-pointer ${theme.ring}`}
+                    value={formData.category_id}
+                    onChange={handleChange}
+                    >
+                    <option value="">-- Pilih --</option>
+                    {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▼</span>
+                </div>
               </div>
             </div>
 
             {/* Row 2: Payment Method */}
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-gray-500 uppercase ml-3">Sumber Dana</label>
-              <div className="grid grid-cols-3 gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                {['cash', 'Tf mandiri', 'Tf blu bca'].map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setFormData({...formData, payment_method: method})}
-                    className={`py-2 px-1 rounded-xl text-xs font-bold transition-all ${
-                      formData.payment_method === method 
-                        ? `bg-white shadow-sm text-gray-800 ring-1 ${type === 'income' ? 'ring-emerald-200' : 'ring-rose-200'}`
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'
-                    }`}
-                  >
-                    {method === 'cash' ? 'Tunai' : method.replace('Tf ', '')}
-                  </button>
-                ))}
+              <div className="relative">
+                <select 
+                  name="payment_method"
+                  required
+                  className={`w-full px-4 py-3.5 rounded-2xl bg-gray-50 border-transparent focus:bg-white shadow-sm text-sm font-bold text-gray-700 outline-none focus:ring-2 transition-all appearance-none cursor-pointer ${theme.ring}`}
+                  value={formData.payment_method}
+                  onChange={handleChange}
+                >
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.name}>{w.name}</option>
+                  ))}
+                </select>
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▼</span>
               </div>
             </div>
 
