@@ -31,7 +31,6 @@ export default function Home() {
     try {
       setLoading(true);
 
-      // Ambil Transaksi
       const { data: allTx, error } = await supabase
         .from('transactions')
         .select('amount, transaction_date, categories(type)')
@@ -41,7 +40,6 @@ export default function Home() {
 
       let monthInc = 0;
       let monthExp = 0;
-      
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
@@ -49,9 +47,8 @@ export default function Home() {
       allTx?.forEach(t => {
         const amount = Number(t.amount) || 0;
         const isIncome = t.categories && t.categories.type === 'income';
-
-        // Filter Hanya Bulan Ini
         const tDate = new Date(t.transaction_date);
+        
         if (tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear) {
             if (isIncome) monthInc += amount;
             else monthExp += amount;
@@ -64,7 +61,6 @@ export default function Home() {
         expenseMonth: monthExp
       });
 
-      // Transaksi Terakhir
       const { data: recent } = await supabase
         .from('transactions')
         .select('*, categories(name, type)')
@@ -97,32 +93,29 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 md:px-8 pt-24 pb-28 font-sans text-gray-800 overflow-x-hidden">
+    // UPDATED: pt-0 untuk mobile, md:pt-28 untuk desktop
+    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 md:px-8 pb-28 pt-0 md:pt-28 font-sans text-gray-800 overflow-x-hidden">
       
-      {/* 1. Header Clean */}
-      <div className="mb-6 px-1">
+      {/* Header: Tambah pt-6 agar tidak terlalu mepet status bar HP */}
+      <div className="mb-6 px-1 pt-6 md:pt-0">
         <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">{getGreeting()}</p>
         <h1 className="text-3xl md:text-4xl font-black text-gray-800 truncate">Hi, {username}! 👋</h1>
       </div>
 
-      {/* 2. Main Card (Clean & Focused) */}
+      {/* Main Card */}
       <motion.div 
         initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
         className="bg-gray-900 text-white p-6 rounded-[2rem] shadow-xl shadow-gray-900/20 mb-8 relative overflow-hidden"
       >
-        {/* Background Effects */}
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/30 rounded-full blur-3xl"></div>
 
         <div className="relative z-10">
             <p className="text-gray-400 text-xs font-medium mb-1">Sisa Uang (Bulan Ini)</p>
-            
-            {/* ANGKA UTAMA */}
             <h2 className={`text-3xl md:text-5xl font-black tracking-tight mb-8 truncate ${summary.balanceMonth < 0 ? 'text-rose-400' : 'text-white'}`}>
                 {loading ? '...' : rupiah(summary.balanceMonth)}
             </h2>
 
-            {/* Grid Income/Expense */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/10 p-3 rounded-2xl backdrop-blur-md border border-white/10">
                     <div className="flex items-center gap-2 mb-1">
@@ -142,7 +135,7 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* 3. Shortcuts */}
+      {/* Shortcuts */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-8">
         {menuItems.map((item, idx) => (
             <Link to={item.path} key={idx} className="flex flex-col items-center gap-2 group p-2 rounded-2xl active:bg-gray-50 transition-colors">
@@ -154,7 +147,7 @@ export default function Home() {
         ))}
       </div>
 
-      {/* 4. Recent Transactions */}
+      {/* Recent Transactions */}
       <div>
         <div className="flex justify-between items-end mb-4 px-1">
             <h3 className="text-lg font-black text-gray-800">Transaksi Terakhir</h3>
@@ -175,14 +168,13 @@ export default function Home() {
                             </p>
                         </div>
                     </div>
-                    <p className={`font-black text-xs whitespace-nowrap ml-2 ${tx.categories?.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>
+                    <p className={`font-black text-xs whitespace-nowrap ml-2 ${tx.categories?.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {tx.categories?.type === 'income' ? '+' : '-'} {rupiah(tx.amount)}
                     </p>
                 </div>
             ))}
         </div>
       </div>
-
     </div>
   );
 }
