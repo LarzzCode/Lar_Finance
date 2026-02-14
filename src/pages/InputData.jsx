@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns'; // Import tambahan
 
 export default function InputData() {
   const { user } = useAuth();
@@ -24,7 +24,7 @@ export default function InputData() {
   useEffect(() => {
     if (user) {
       fetchCategories();
-      fetchWallets();
+      fetchWalletsAndCalculate(); // Pakai fungsi hitung baru
     }
   }, [user, type]);
 
@@ -38,12 +38,50 @@ export default function InputData() {
     setSelectedCategory('');
   };
 
-  const fetchWallets = async () => {
-    const { data } = await supabase.from('wallets').select('*').order('created_at');
-    setWallets(data || []);
-    // Auto-select wallet pertama
-    if (data && data.length > 0 && !selectedWallet) {
-        setSelectedWallet(data[0].id);
+  // --- LOGIKA HITUNG SALDO DI INPUT DATA ---
+  const fetchWalletsAndCalculate = async () => {
+    // 1. Tentukan Range Tanggal (BULAN INI)
+    // Supaya sinkron dengan halaman Wallet
+    const now = new Date();
+    const startDate = format(startOfMonth(now), 'yyyy-MM-dd');
+    const endDate = format(endOfMonth(now), 'yyyy-MM-dd');
+
+    // 2. Ambil Data Dompet
+    const { data: walletData } = await supabase.from('wallets').select('*').order('created_at');
+    
+    // 3. Ambil Transaksi Bulan Ini
+    const { data: txData } = await supabase
+        .from('transactions')
+        .select('amount, wallet_id, categories(type)')
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate);
+
+    if (walletData && txData) {
+        // 4. Hitung Saldo Real-time
+        const calculatedWallets = walletData.map(w => {
+            // Filter transaksi milik dompet ini & pastikan ID string/number cocok
+            const myTxs = txData.filter(t => String(t.wallet_id) === String(w.id));
+            
+            const totalIncome = myTxs
+                .filter(t => t.categories?.type === 'income')
+                .reduce((acc, curr) => acc + Number(curr.amount), 0);
+                
+            const totalExpense = myTxs
+                .filter(t => t.categories?.type === 'expense')
+                .reduce((acc, curr) => acc + Number(curr.amount), 0);
+
+            // Rumus: Saldo Awal + Masuk - Keluar
+            const realBalance = (Number(w.saldo_awal) || 0) + totalIncome - totalExpense;
+
+            return { ...w, balance: realBalance };
+        });
+
+        setWallets(calculatedWallets);
+
+        // Auto-select wallet pertama jika belum ada yang dipilih
+        if (calculatedWallets.length > 0 && !selectedWallet) {
+            setSelectedWallet(calculatedWallets[0].id);
+        }
     }
   };
 
@@ -56,8 +94,7 @@ export default function InputData() {
 
     setLoading(true);
     try {
-      // 1. CARI NAMA DOMPET BERDASARKAN ID
-      // Agar yang tersimpan di 'payment_method' adalah nama dompetnya (misal: 'Mandiri')
+      // Cari nama dompet untuk payment_method
       const walletData = wallets.find(w => w.id === selectedWallet);
       const walletName = walletData ? walletData.name : 'Manual';
 
@@ -69,7 +106,7 @@ export default function InputData() {
           description: description || (type === 'expense' ? 'Pengeluaran' : 'Pemasukan'),
           category_id: selectedCategory,
           wallet_id: selectedWallet,
-          payment_method: walletName // <--- PERBAIKAN DISINI (Dulu hardcode 'Manual')
+          payment_method: walletName
         }
       ]);
 
@@ -151,7 +188,7 @@ export default function InputData() {
                 <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="w-full font-bold text-gray-800 bg-transparent outline-none text-sm" />
             </div>
 
-            {/* Dompet */}
+            {/* Dompet (YANG SUDAH ADA HITUNGAN SALDO) */}
             <div className="flex flex-col gap-2 border-b border-gray-50 pb-4">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sumber Dana</label>
                 <select 
@@ -160,9 +197,12 @@ export default function InputData() {
                     className="w-full font-bold text-gray-800 bg-transparent outline-none text-sm appearance-none py-1"
                 >
                     {wallets.map(w => (
-                        <option key={w.id} value={w.id}>{w.name} ({new Intl.NumberFormat('id-ID').format(w.saldo_awal)})</option>
+                        <option key={w.id} value={w.id}>
+                            {w.name} ({new Intl.NumberFormat('id-ID').format(w.balance)})
+                        </option>
                     ))}
                 </select>
+                <p className="text-[9px] text-gray-400">*Saldo yang tampil adalah sisa dana bulan ini.</p>
             </div>
 
             {/* Kategori */}
