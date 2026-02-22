@@ -14,9 +14,11 @@ export default function Rekapan() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // DATA UNTUK DROPDOWN EDIT
   const [availableCategories, setAvailableCategories] = useState([]);
   const [availableWallets, setAvailableWallets] = useState([]);
 
+  // STATE MODAL
   const [selectedTx, setSelectedTx] = useState(null); 
   const [isEditMode, setIsEditMode] = useState(false);
   const [editForm, setEditForm] = useState({ amount: '', description: '', date: '', category_id: '', wallet_id: '' });
@@ -115,8 +117,14 @@ export default function Rekapan() {
       }
       
       if (matchesTab && (desc.includes(query) || catName.includes(query))) {
-          const date = parseISO(tx.transaction_date); const weekNum = getWeekOfMonth(date, { weekStartsOn: 1 });
-          const startW = startOfWeek(date, { weekStartsOn: 1 }); const endW = endOfWeek(date, { weekStartsOn: 1 });
+          const date = parseISO(tx.transaction_date); 
+          
+          // --- CUSTOM LOGIC KHUSUS BOS ---
+          // weekStartsOn: 5 berarti minggu dimulai hari JUMAT (0=Minggu, 1=Senin... 5=Jumat)
+          const weekNum = getWeekOfMonth(date, { weekStartsOn: 5 });
+          const startW = startOfWeek(date, { weekStartsOn: 5 }); 
+          const endW = endOfWeek(date, { weekStartsOn: 5 });
+          
           if (!weekGroups[weekNum]) weekGroups[weekNum] = { week: weekNum, total: 0, items: [], startDate: startW, endDate: endW };
           weekGroups[weekNum].total += amount; weekGroups[weekNum].items.push(tx);
       }
@@ -208,7 +216,8 @@ export default function Rekapan() {
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: wIdx * 0.05 }} key={week.week} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                                 <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                                     <div>
-                                        <h4 className="font-black text-gray-800 text-xs uppercase tracking-wide">Minggu {week.week}</h4>
+                                        {/* CUSTOM NAMA JUMAT KE- */}
+                                        <h4 className="font-black text-gray-800 text-xs uppercase tracking-wide">Jumat ke-{week.week}</h4>
                                         <p className="text-[10px] text-gray-400 font-bold mt-1">{format(week.startDate, 'dd MMM')} - {format(week.endDate, 'dd MMM')}</p>
                                     </div>
                                     <p className={`font-black text-xs ${activeTab === 'pemasukan' ? 'text-emerald-600' : 'text-rose-600'}`}>{rupiah(week.total)}</p>
@@ -223,18 +232,15 @@ export default function Rekapan() {
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-bold text-gray-800 truncate max-w-[150px]">{tx.description || tx.categories?.name}</p>
                                                     
-                                                    {/* KETERANGAN LENGKAP: TANGGAL - DOMPET - KATEGORI */}
                                                     <div className="flex items-center gap-1.5 mt-0.5 overflow-hidden">
                                                         <span className="text-[10px] text-gray-400 font-bold uppercase whitespace-nowrap">
                                                             {format(parseISO(tx.transaction_date), 'dd MMM')}
                                                         </span>
                                                         <span className="text-[10px] text-gray-300">•</span>
-                                                        
                                                         <span className="text-[10px] text-indigo-500 font-bold uppercase bg-indigo-50 px-1.5 py-0.5 rounded whitespace-nowrap">
                                                             {tx.wallets?.name || tx.payment_method || 'Manual'}
                                                         </span>
                                                         <span className="text-[10px] text-gray-300">•</span>
-
                                                         <span className="text-[10px] text-gray-500 font-bold uppercase truncate">
                                                             {tx.categories?.name}
                                                         </span>
