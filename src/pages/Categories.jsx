@@ -3,6 +3,21 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import * as icons from 'lucide-react';
+
+// --- 1. KOMPONEN PENAFSIR IKON DINAMIS ---
+const DynamicIcon = ({ name, size = 20, className = "" }) => {
+  const LucideIcon = icons[name] || icons['HelpCircle'];
+  return <LucideIcon size={size} className={className} />;
+};
+
+// --- 2. DAFTAR IKON YANG BISA DIPILIH (ICON LIBRARY) ---
+const AVAILABLE_ICONS = [
+  'Utensils', 'HeartPulse', 'GraduationCap', 'Wifi', 'Users', 
+  'HeartHandshake', 'ShoppingCart', 'Sparkles', 'Car', 'LayoutGrid', 
+  'Briefcase', 'Gift', 'Wallet', 'Coffee', 'Dumbbell', 'Gamepad2', 
+  'Home', 'Music', 'Plane', 'Smartphone', 'Scissors', 'Baby'
+];
 
 export default function Categories() {
   const { user } = useAuth();
@@ -13,7 +28,8 @@ export default function Categories() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
-  const [formData, setFormData] = useState({ name: '' }); // Hapus field icon/emoji
+  // Default icon saat tambah kategori baru adalah 'LayoutGrid'
+  const [formData, setFormData] = useState({ name: '', icon: 'LayoutGrid' }); 
 
   useEffect(() => {
     if(user) fetchCategories();
@@ -33,11 +49,11 @@ export default function Categories() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        // Kita set icon jadi default "-" karena database mungkin butuh, tapi di UI kita abaikan
-        const payload = { name: formData.name, type: activeTab, user_id: user.id, icon: '-' };
+        // Menyertakan icon dari formData ke payload database
+        const payload = { name: formData.name, type: activeTab, user_id: user.id, icon: formData.icon };
         
         if (editData) {
-            await supabase.from('categories').update({ name: formData.name }).eq('id', editData.id);
+            await supabase.from('categories').update({ name: formData.name, icon: formData.icon }).eq('id', editData.id);
             toast.success('Kategori diperbarui');
         } else {
             await supabase.from('categories').insert([payload]);
@@ -45,7 +61,7 @@ export default function Categories() {
         }
         setIsModalOpen(false);
         setEditData(null);
-        setFormData({ name: '' });
+        setFormData({ name: '', icon: 'LayoutGrid' });
         fetchCategories();
     } catch (error) {
         toast.error('Gagal: ' + error.message);
@@ -55,7 +71,6 @@ export default function Categories() {
   const handleDelete = async (id) => {
       if(!confirm("Hapus kategori ini? Transaksi terkait akan kehilangan kategori.")) return;
       try {
-        // Tadi kita sudah set ON DELETE SET NULL, jadi aman
         await supabase.from('categories').delete().eq('id', id);
         fetchCategories();
         toast.success('Dihapus');
@@ -71,7 +86,7 @@ export default function Categories() {
             <h1 className="text-3xl font-black text-gray-800">Kategori</h1>
             <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Atur pos keuanganmu</p>
          </div>
-         <button onClick={() => { setEditData(null); setFormData({name:''}); setIsModalOpen(true); }} className="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-black transition-colors">
+         <button onClick={() => { setEditData(null); setFormData({name:'', icon: 'LayoutGrid'}); setIsModalOpen(true); }} className="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-black transition-colors">
             + Baru
          </button>
       </div>
@@ -97,16 +112,17 @@ export default function Categories() {
         {categories.map((cat) => (
             <div key={cat.id} className="group bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-3 relative overflow-hidden">
                 
-                {/* Visual Pengganti Emoji: Inisial Huruf */}
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black ${activeTab === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                    {cat.name.charAt(0).toUpperCase()}
+                {/* --- 3. IMPLEMENTASI DYNAMIC ICON DI DAFTAR KATEGORI --- */}
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${activeTab === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                    <DynamicIcon name={cat.icon} size={28} />
                 </div>
 
                 <p className="text-sm font-bold text-gray-700 text-center truncate w-full">{cat.name}</p>
                 
                 {/* Action Buttons (Hover Only) */}
                 <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => { setEditData(cat); setFormData(cat); setIsModalOpen(true); }} className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs">✎</button>
+                    {/* Saat edit, form diisi oleh data kategori beserta ikon lamanya */}
+                    <button onClick={() => { setEditData(cat); setFormData({ name: cat.name, icon: cat.icon || 'LayoutGrid' }); setIsModalOpen(true); }} className="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs">✎</button>
                     <button onClick={() => handleDelete(cat.id)} className="w-8 h-8 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xs">✕</button>
                 </div>
             </div>
@@ -126,6 +142,7 @@ export default function Categories() {
                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl">
                     <h2 className="text-xl font-black mb-6 text-gray-800">{editData ? 'Edit Kategori' : 'Kategori Baru'}</h2>
                     <form onSubmit={handleSubmit} className="space-y-5">
+                        
                         <div>
                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nama Kategori</label>
                             <input 
@@ -137,10 +154,31 @@ export default function Categories() {
                             />
                         </div>
                         
-                        {/* Info Visual */}
+                        {/* --- 4. ICON PICKER GRID DI DALAM MODAL --- */}
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Pilih Ikon</label>
+                            <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-3 bg-gray-50 rounded-2xl border border-gray-100 custom-scrollbar">
+                                {AVAILABLE_ICONS.map((iconName) => (
+                                    <button
+                                        key={iconName}
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, icon: iconName })}
+                                        className={`p-2 rounded-xl flex items-center justify-center transition-all ${
+                                            formData.icon === iconName
+                                                ? (activeTab === 'income' ? 'bg-emerald-100 text-emerald-600 shadow-sm' : 'bg-rose-100 text-rose-500 shadow-sm')
+                                                : 'text-gray-400 hover:bg-gray-200 hover:text-gray-600'
+                                        }`}
+                                    >
+                                        <DynamicIcon name={iconName} size={20} />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Info Visual Preview */}
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-black ${activeTab === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}>
-                                {formData.name ? formData.name.charAt(0).toUpperCase() : '?'}
+                                <DynamicIcon name={formData.icon} size={20} />
                             </div>
                             <p className="text-xs text-gray-400 font-medium">Preview Tampilan</p>
                         </div>

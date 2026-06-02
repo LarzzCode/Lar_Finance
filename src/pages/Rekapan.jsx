@@ -6,6 +6,14 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import * as icons from 'lucide-react'; 
+
+// --- KOMPONEN PENAFSIR IKON DINAMIS ---
+const DynamicIcon = ({ name, size = 20, className = "" }) => {
+  const LucideIcon = icons[name] || icons['HelpCircle'];
+  if (!LucideIcon) return null;
+  return <LucideIcon size={size} className={className} />;
+};
 
 export default function Rekapan() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -46,7 +54,7 @@ export default function Rekapan() {
     
     const { data, error } = await supabase
       .from('transactions')
-      .select('*, categories(name, type), wallets(name)')
+      .select('*, categories(name, type, icon), wallets(name)')
       .gte('transaction_date', start)
       .lte('transaction_date', end)
       .order('transaction_date', { ascending: false })
@@ -232,7 +240,7 @@ export default function Rekapan() {
             {/* KIRI */}
             <div className="lg:col-span-4 space-y-6 h-fit lg:sticky lg:top-36">
                 
-                {/* KARTU RINGKASAN HARI INI - Rombak Total: Aesthetic Tanpa Bold */}
+                {/* KARTU RINGKASAN HARI INI */}
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }} 
                     animate={{ opacity: 1, y: 0 }}
@@ -245,29 +253,24 @@ export default function Rekapan() {
                 >
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-4">
-                            {/* Pulse Indicator Indikator "Live" Hari Ini */}
                             <span className="relative flex h-2.5 w-2.5">
                               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${activeTab === 'pemasukan' ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
                               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeTab === 'pemasukan' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                             </span>
                             
-                            {/* KEMBALI KE BIASA: Pakai font-medium, bukan font-black */}
                             <span className={`text-[11px] font-medium uppercase tracking-widest ${activeTab === 'pemasukan' ? 'text-emerald-700' : 'text-rose-700'}`}>
                                 TRANSAKSI HARI INI
                             </span>
                         </div>
                         
-                        {/* NOMINAL UTAMA: Biarkan font-black agar menonjol */}
                         <h3 className={`text-3xl font-black tracking-tight mb-1.5 ${activeTab === 'pemasukan' ? 'text-emerald-950' : 'text-rose-950'}`}>
                             {rupiah(todayTotal)}
                         </h3>
                         
-                        {/* KEMBALI KE BIASA: Pakai font-medium, bukan font-bold */}
                         <p className={`text-xs font-medium ${activeTab === 'pemasukan' ? 'text-emerald-600/80' : 'text-rose-600/80'}`}>
                             Total {activeTab === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} • {format(new Date(), 'dd MMM yyyy', { locale: id })}
                         </p>
                     </div>
-                    {/* Soft Background Blob */}
                     <div className={`absolute -bottom-10 -right-10 w-40 h-40 rounded-full blur-3xl opacity-40 pointer-events-none ${activeTab === 'pemasukan' ? 'bg-emerald-200' : 'bg-rose-200'}`}></div>
                 </motion.div>
 
@@ -339,9 +342,11 @@ export default function Rekapan() {
                                     {week.items.map((tx) => (
                                         <div key={tx.id} onClick={() => handleTxClick(tx)} className="p-4 hover:bg-gray-50 transition-colors flex justify-between items-center cursor-pointer group">
                                             <div className="flex items-center gap-4">
-                                                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-black uppercase shadow-sm ${activeTab === 'pemasukan' ? 'bg-emerald-50 text-emerald-500 border border-emerald-100' : 'bg-rose-50 text-rose-500 border border-rose-100'}`}>
-                                                    {tx.categories?.name ? tx.categories.name.charAt(0) : '?'}
+                                                
+                                                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm ${activeTab === 'pemasukan' ? 'bg-emerald-50 text-emerald-500 border border-emerald-100' : 'bg-rose-50 text-rose-500 border border-rose-100'}`}>
+                                                    <DynamicIcon name={tx.categories?.icon} size={20} />
                                                 </div>
+
                                                 <div className="min-w-0">
                                                     <p className="text-xs font-bold text-gray-900 truncate max-w-[150px]">{tx.description || tx.categories?.name}</p>
                                                     <div className="flex items-center gap-1.5 mt-1 overflow-hidden">
@@ -367,18 +372,19 @@ export default function Rekapan() {
         </div>
       </div>
 
-      {/* MODAL EDIT AESTHETIC */}
+      {/* MODAL EDIT & DETAIL AESTHETIC */}
       <AnimatePresence>
           {selectedTx && (
               <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setSelectedTx(null)} />
-                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-white w-full md:max-w-md rounded-t-[2rem] md:rounded-[2rem] p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto">
+                  <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="bg-white w-full md:max-w-md rounded-t-[2rem] md:rounded-[2rem] p-8 relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
                       <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
                       {!isEditMode ? (
                           <>
+                              {/* MODE DETAIL TRANSAKSI */}
                               <div className="text-center mb-8">
-                                  <div className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center text-3xl font-black uppercase mb-5 shadow-sm border ${selectedTx.categories?.type === 'income' ? 'bg-emerald-50 border-emerald-100 text-emerald-500' : 'bg-rose-50 border-rose-100 text-rose-500'}`}>
-                                      {selectedTx.categories?.name?.charAt(0)}
+                                  <div className={`w-20 h-20 mx-auto rounded-3xl flex items-center justify-center mb-5 shadow-sm border ${selectedTx.categories?.type === 'income' ? 'bg-emerald-50 border-emerald-100 text-emerald-500' : 'bg-rose-50 border-rose-100 text-rose-500'}`}>
+                                      <DynamicIcon name={selectedTx.categories?.icon} size={40} />
                                   </div>
                                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{selectedTx.categories?.name}</p>
                                   <h3 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">{rupiah(selectedTx.amount)}</h3>
@@ -394,16 +400,92 @@ export default function Rekapan() {
                               </div>
                           </>
                       ) : (
+                          /* MODE FORM EDIT TRANSAKSI */
                           <form onSubmit={handleUpdate} className="space-y-5">
                               <h3 className="text-lg font-black text-gray-900 text-center mb-6">Edit Transaksi</h3>
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Nominal</label><input type="number" required value={editForm.amount} onChange={e=>setEditForm({...editForm, amount: e.target.value})} className="w-full mt-1.5 p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none text-sm focus:bg-white focus:border-gray-300 transition-colors" /></div>
-                                  <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Tanggal</label><input type="date" required value={editForm.date} onChange={e=>setEditForm({...editForm, date: e.target.value})} className="w-full mt-1.5 p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none text-sm focus:bg-white focus:border-gray-300 transition-colors" /></div>
+                              
+                              {/* Nominal */}
+                              <div>
+                                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1.5">Nominal (Rp)</label>
+                                  <input 
+                                      type="number" 
+                                      required 
+                                      value={editForm.amount} 
+                                      onChange={e=>setEditForm({...editForm, amount: e.target.value})} 
+                                      className={`w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl font-black text-2xl outline-none focus:bg-white focus:border-gray-300 transition-colors ${selectedTx.categories?.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`} 
+                                  />
                               </div>
-                              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Kategori</label><select value={editForm.category_id} onChange={e=>setEditForm({...editForm, category_id: e.target.value})} className="w-full mt-1.5 p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none text-sm focus:bg-white focus:border-gray-300 transition-colors appearance-none">{availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Sumber Dana</label><select value={editForm.wallet_id || ''} onChange={e=>setEditForm({...editForm, wallet_id: e.target.value})} className="w-full mt-1.5 p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none text-sm focus:bg-white focus:border-gray-300 transition-colors appearance-none">{availableWallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}</select></div>
-                              <div><label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Deskripsi</label><input type="text" value={editForm.description} onChange={e=>setEditForm({...editForm, description: e.target.value})} className="w-full mt-1.5 p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold outline-none text-sm focus:bg-white focus:border-gray-300 transition-colors" /></div>
-                              <div className="flex gap-4 pt-4"><button type="button" onClick={() => setIsEditMode(false)} className="flex-1 py-4 bg-gray-50 border border-gray-200 font-bold text-gray-500 rounded-2xl hover:bg-gray-100 transition-colors">Batal</button><button type="submit" className="flex-1 py-4 bg-gray-900 font-bold text-white rounded-2xl shadow-lg hover:bg-black transition-colors tracking-wide">Simpan</button></div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                  {/* Tanggal */}
+                                  <div>
+                                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1.5">Tanggal</label>
+                                      <input 
+                                          type="date" 
+                                          required 
+                                          value={editForm.date} 
+                                          onChange={e=>setEditForm({...editForm, date: e.target.value})} 
+                                          className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-800 outline-none focus:bg-white focus:border-gray-300 transition-colors text-sm" 
+                                      />
+                                  </div>
+                                  
+                                  {/* Sumber Dana */}
+                                  <div>
+                                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1.5">Sumber Dana</label>
+                                      <div className="relative">
+                                          <select 
+                                              value={editForm.wallet_id || ''} 
+                                              onChange={e=>setEditForm({...editForm, wallet_id: e.target.value})} 
+                                              className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-800 outline-none focus:bg-white focus:border-gray-300 transition-colors appearance-none cursor-pointer text-sm"
+                                          >
+                                              {availableWallets.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                          </select>
+                                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                              <DynamicIcon name="ChevronDown" size={16} />
+                                          </span>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              {/* Kategori Dropdown dengan Ikon */}
+                              <div>
+                                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1.5">Kategori</label>
+                                  <div className="flex gap-3">
+                                      <div className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center border shadow-sm ${selectedTx.categories?.type === 'income' ? 'bg-emerald-50 border-emerald-100 text-emerald-500' : 'bg-rose-50 border-rose-100 text-rose-500'}`}>
+                                          <DynamicIcon name={availableCategories.find(c => String(c.id) === String(editForm.category_id))?.icon || 'LayoutGrid'} size={24} />
+                                      </div>
+                                      <div className="relative flex-1">
+                                          <select 
+                                              value={editForm.category_id} 
+                                              onChange={e=>setEditForm({...editForm, category_id: e.target.value})} 
+                                              className="w-full h-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-bold text-gray-800 outline-none focus:bg-white focus:border-gray-300 transition-colors appearance-none cursor-pointer text-sm"
+                                          >
+                                              {availableCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                          </select>
+                                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                              <DynamicIcon name="ChevronDown" size={16} />
+                                          </span>
+                                      </div>
+                                  </div>
+                              </div>
+
+                              {/* Deskripsi */}
+                              <div>
+                                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1.5">Catatan</label>
+                                  <textarea 
+                                      rows="2" 
+                                      value={editForm.description} 
+                                      onChange={e=>setEditForm({...editForm, description: e.target.value})} 
+                                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl font-medium text-gray-800 outline-none focus:bg-white focus:border-gray-300 transition-colors resize-none text-sm placeholder-gray-300" 
+                                      placeholder="Tulis catatan opsional..." 
+                                  />
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex gap-4 pt-4">
+                                  <button type="button" onClick={() => setIsEditMode(false)} className="flex-1 py-4 bg-gray-50 border border-gray-200 font-bold text-gray-500 rounded-2xl hover:bg-gray-100 transition-colors">Batal</button>
+                                  <button type="submit" className="flex-1 py-4 bg-gray-900 font-bold text-white rounded-2xl shadow-lg hover:bg-black transition-colors tracking-wide">Simpan Perubahan</button>
+                              </div>
                           </form>
                       )}
                   </motion.div>
