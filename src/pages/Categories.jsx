@@ -84,7 +84,7 @@ export default function Categories() {
       <div className="flex justify-between items-end mb-8 pt-8 md:pt-0">
          <div>
             <h1 className="text-3xl font-black text-gray-800">Kategori</h1>
-            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Atur pos keuanganmu</p>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Atur Pos Keuanganmu</p>
          </div>
          <button onClick={() => { setEditData(null); setFormData({name:'', icon: 'LayoutGrid'}); setIsModalOpen(true); }} className="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg hover:bg-black transition-colors">
             + Baru
