@@ -7,7 +7,7 @@ import HomeV2 from './pages/HomeV2';
 import InputDataV2 from './pages/InputDataV2';
 import Rekapan from './pages/Rekapan';
 import Profile from './pages/Profile';
-import Dompet from './pages/Dompet';
+import DompetV2 from './pages/DompetV2';
 import Budgeting from './pages/Budgeting';
 import Subscriptions from './pages/Subscriptions';
 import Categories from './pages/Categories';
@@ -60,7 +60,7 @@ export default function App() {
             <Route path="/" element={<PrivateRoute><HomeV2 /></PrivateRoute>} />
             <Route path="/input" element={<PrivateRoute><InputDataV2 /></PrivateRoute>} />
             <Route path="/rekap" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
-            <Route path="/wallet" element={<PrivateRoute><Dompet /></PrivateRoute>} />
+            <Route path="/wallet" element={<PrivateRoute><DompetV2 /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
             <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
