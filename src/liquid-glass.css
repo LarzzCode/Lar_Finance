@@ -1,0 +1,221 @@
+/* Lar Finance V3 — Liquid Glass system */
+:root {
+  --lf-glass: rgba(255,255,255,.62);
+  --lf-glass-strong: rgba(255,255,255,.78);
+  --lf-border: rgba(255,255,255,.68);
+  --lf-shadow: 0 18px 60px rgba(15,23,42,.08);
+  --lf-text: #172033;
+  --lf-muted: #758195;
+}
+
+html.dark {
+  --lf-glass: rgba(15,23,42,.58);
+  --lf-glass-strong: rgba(15,23,42,.76);
+  --lf-border: rgba(255,255,255,.10);
+  --lf-shadow: 0 22px 70px rgba(0,0,0,.28);
+  --lf-text: #eef2f7;
+  --lf-muted: #8d99aa;
+}
+
+.liquid-app {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(129,140,248,.18), transparent 30rem),
+    radial-gradient(circle at 88% 16%, rgba(56,189,248,.14), transparent 28rem),
+    radial-gradient(circle at 55% 82%, rgba(16,185,129,.09), transparent 30rem),
+    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #eef2f7 100%);
+}
+
+.dark .liquid-app {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(99,102,241,.14), transparent 30rem),
+    radial-gradient(circle at 88% 16%, rgba(14,165,233,.10), transparent 28rem),
+    radial-gradient(circle at 55% 82%, rgba(16,185,129,.07), transparent 30rem),
+    linear-gradient(180deg, #070b14 0%, #0b1220 52%, #090f1b 100%);
+}
+
+.liquid-app::before,
+.liquid-app::after {
+  content: '';
+  position: fixed;
+  z-index: -1;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 999px;
+  filter: blur(80px);
+  opacity: .42;
+  pointer-events: none;
+}
+
+.liquid-app::before {
+  top: 10%;
+  left: -8rem;
+  background: rgba(165,180,252,.35);
+}
+
+.liquid-app::after {
+  right: -10rem;
+  bottom: 10%;
+  background: rgba(125,211,252,.30);
+}
+
+.dark .liquid-app::before { background: rgba(79,70,229,.20); }
+.dark .liquid-app::after { background: rgba(14,165,233,.14); }
+
+.liquid-app .font-black { font-weight: 700 !important; }
+.liquid-app .font-extrabold { font-weight: 700 !important; }
+.liquid-app .font-bold { font-weight: 600 !important; }
+.liquid-app h1,
+.liquid-app h2,
+.liquid-app h3 { letter-spacing: -.025em; }
+.liquid-app p,
+.liquid-app span,
+.liquid-app label,
+.liquid-app button,
+.liquid-app a { text-rendering: geometricPrecision; }
+
+.liquid-app main.bg-\[\#F7F8FA\],
+.liquid-app main.bg-\[\#F6F7F9\] {
+  background: transparent !important;
+}
+
+.liquid-app main .bg-white,
+.liquid-app main .bg-white\/60 {
+  background-color: var(--lf-glass) !important;
+  backdrop-filter: blur(26px) saturate(155%);
+  -webkit-backdrop-filter: blur(26px) saturate(155%);
+  border-color: var(--lf-border) !important;
+}
+
+.liquid-app main .shadow-sm,
+.liquid-app main .shadow-lg,
+.liquid-app main .shadow-xl,
+.liquid-app main .shadow-2xl {
+  box-shadow: var(--lf-shadow) !important;
+}
+
+.liquid-app main .bg-slate-950,
+.liquid-app main .bg-\[\#0B1220\] {
+  background: linear-gradient(145deg, rgba(15,23,42,.92), rgba(30,41,59,.78)) !important;
+  backdrop-filter: blur(30px) saturate(145%);
+  -webkit-backdrop-filter: blur(30px) saturate(145%);
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.dark .liquid-app main .bg-slate-950,
+.dark .liquid-app main .bg-\[\#0B1220\] {
+  background: linear-gradient(145deg, rgba(7,11,20,.88), rgba(15,23,42,.70)) !important;
+  border-color: rgba(255,255,255,.08);
+}
+
+.liquid-app input,
+.liquid-app select,
+.liquid-app textarea {
+  background-color: rgba(248,250,252,.72) !important;
+  border-color: rgba(148,163,184,.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.62);
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.liquid-app input:focus,
+.liquid-app select:focus,
+.liquid-app textarea:focus {
+  background-color: rgba(255,255,255,.88) !important;
+  border-color: rgba(99,102,241,.28) !important;
+  box-shadow: 0 0 0 4px rgba(99,102,241,.08), inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+.dark .liquid-app input,
+.dark .liquid-app select,
+.dark .liquid-app textarea {
+  background-color: rgba(30,41,59,.64) !important;
+  border-color: rgba(255,255,255,.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.dark .liquid-app input:focus,
+.dark .liquid-app select:focus,
+.dark .liquid-app textarea:focus {
+  background-color: rgba(30,41,59,.82) !important;
+  border-color: rgba(129,140,248,.26) !important;
+}
+
+.liquid-app main .bg-emerald-50 { background-color: rgba(236,253,245,.70) !important; }
+.liquid-app main .bg-rose-50 { background-color: rgba(255,241,242,.72) !important; }
+.liquid-app main .bg-indigo-50,
+.liquid-app main .bg-indigo-50\/70,
+.liquid-app main .bg-\[\#EEF2FF\] { background-color: rgba(238,242,255,.68) !important; }
+.liquid-app main .bg-amber-50 { background-color: rgba(255,251,235,.72) !important; }
+
+.dark .liquid-app main .bg-emerald-50 { background-color: rgba(6,78,59,.18) !important; }
+.dark .liquid-app main .bg-rose-50 { background-color: rgba(136,19,55,.18) !important; }
+.dark .liquid-app main .bg-indigo-50,
+.dark .liquid-app main .bg-indigo-50\/70,
+.dark .liquid-app main .bg-\[\#EEF2FF\] { background-color: rgba(49,46,129,.20) !important; }
+.dark .liquid-app main .bg-amber-50 { background-color: rgba(120,53,15,.18) !important; }
+
+.liquid-app main section[class*='rounded-[2rem]'],
+.liquid-app main article[class*='rounded-[2rem]'],
+.liquid-app main div[class*='rounded-[2rem]'] {
+  border-color: rgba(255,255,255,.66);
+}
+
+.dark .liquid-app main section[class*='rounded-[2rem]'],
+.dark .liquid-app main article[class*='rounded-[2rem]'],
+.dark .liquid-app main div[class*='rounded-[2rem]'] {
+  border-color: rgba(255,255,255,.08);
+}
+
+.dark .liquid-app option {
+  background: #111827;
+  color: #f8fafc;
+}
+
+.liquid-nav {
+  background: rgba(255,255,255,.58);
+  border: 1px solid rgba(255,255,255,.74);
+  box-shadow: 0 18px 54px rgba(15,23,42,.10), inset 0 1px 0 rgba(255,255,255,.78);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+}
+
+.dark .liquid-nav {
+  background: rgba(15,23,42,.58);
+  border-color: rgba(255,255,255,.10);
+  box-shadow: 0 22px 60px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.liquid-nav-pill {
+  background: rgba(255,255,255,.62);
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 8px 24px rgba(15,23,42,.06), inset 0 1px 0 rgba(255,255,255,.76);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+}
+
+.dark .liquid-nav-pill {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.liquid-primary {
+  background: linear-gradient(145deg, #111827, #020617);
+  box-shadow: 0 12px 30px rgba(15,23,42,.20), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.dark .liquid-primary {
+  background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.08));
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+@media (max-width: 767px) {
+  .liquid-app::before,
+  .liquid-app::after {
+    width: 18rem;
+    height: 18rem;
+    filter: blur(68px);
+  }
+}
