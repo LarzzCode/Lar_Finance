@@ -54,6 +54,7 @@ export function calculateWalletBalances(wallets = [], transactions = [], date = 
     allWalletTx.forEach((tx) => {
       const amount = Number(tx.amount || 0);
       const isIncome = tx.categories?.type === 'income';
+
       if (isIncome) allIncome += amount;
       else allExpense += amount;
 
@@ -63,9 +64,14 @@ export function calculateWalletBalances(wallets = [], transactions = [], date = 
       }
     });
 
+    const startingBalance = Number(wallet.saldo_awal || 0);
+    const monthBalance = startingBalance + monthIncome - monthExpense;
+
     return {
       ...wallet,
-      current_balance: Number(wallet.saldo_awal || 0) + allIncome - allExpense,
+      current_balance: monthBalance,
+      month_balance: monthBalance,
+      historical_balance: startingBalance + allIncome - allExpense,
       month_income: monthIncome,
       month_expense: monthExpense,
       month_net: monthIncome - monthExpense,
