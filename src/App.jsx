@@ -5,15 +5,15 @@ import { ThemeProvider } from './context/ThemeContext';
 
 import LoginV2 from './pages/LoginV2';
 import HomeV3 from './pages/HomeV3';
-import InputDataV23 from './pages/InputDataV23';
+import InputDataV3 from './pages/InputDataV3';
 import RekapanV3 from './pages/RekapanV3';
-import ProfileV2 from './pages/ProfileV2';
+import ProfileV3 from './pages/ProfileV3';
 import DompetV3 from './pages/DompetV3';
 import BudgetingV22 from './pages/BudgetingV22';
 import SubscriptionsV22 from './pages/SubscriptionsV22';
 import CategoriesV22 from './pages/CategoriesV22';
 import SavingsV2 from './pages/SavingsV2';
-import Planning from './pages/Planning';
+import PlanningV3 from './pages/PlanningV3';
 import NotFound from './pages/NotFound';
 
 import NavbarV3 from './components/NavbarV3';
@@ -77,11 +77,11 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<LoginV2 />} />
                 <Route path="/" element={<PrivateRoute><HomeV3 /></PrivateRoute>} />
-                <Route path="/input" element={<PrivateRoute><InputDataV23 /></PrivateRoute>} />
+                <Route path="/input" element={<PrivateRoute><InputDataV3 /></PrivateRoute>} />
                 <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV3 /></PrivateRoute>} />
-                <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
-                <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
+                <Route path="/profile" element={<PrivateRoute><ProfileV3 /></PrivateRoute>} />
+                <Route path="/planning" element={<PrivateRoute><PlanningV3 /></PrivateRoute>} />
                 <Route path="/budget" element={<PrivateRoute><BudgetingV22 /></PrivateRoute>} />
                 <Route path="/subscription" element={<PrivateRoute><SubscriptionsV22 /></PrivateRoute>} />
                 <Route path="/savings" element={<PrivateRoute><SavingsV2 /></PrivateRoute>} />
