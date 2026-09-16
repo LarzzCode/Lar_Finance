@@ -9,11 +9,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'MyFinance App',
-        short_name: 'MyFinance',
-        description: 'Aplikasi Pencatat Keuangan Pribadi',
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        name: 'Lar Finance',
+        short_name: 'Lar Finance',
+        description: 'Aplikasi personal finance untuk transaksi, budget, dompet, tagihan, dan tujuan keuangan.',
+        theme_color: '#0B1220',
+        background_color: '#F7F8FA',
         display: 'standalone',
         icons: [
           {
@@ -35,6 +35,5 @@ export default defineConfig({
         ]
       }
     })
-  ],
-  // HAPUS SEMUA KONFIGURASI LAIN DI BAWAH SINI
+  ]
 })
