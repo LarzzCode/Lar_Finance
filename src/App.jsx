@@ -4,12 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 import LoginV3 from './pages/LoginV3';
-import HomeV3 from './pages/HomeV3';
-import InputDataV3 from './pages/InputDataV3';
+import HomeV31 from './pages/HomeV31';
+import InputDataV31 from './pages/InputDataV31';
 import RekapanV3 from './pages/RekapanV3';
 import ProfileV3 from './pages/ProfileV3';
-import DompetV3 from './pages/DompetV3';
-import BudgetingV3 from './pages/BudgetingV3';
+import DompetV31 from './pages/DompetV31';
+import TransferV31 from './pages/TransferV31';
+import BudgetingV31 from './pages/BudgetingV31';
 import SubscriptionsV3 from './pages/SubscriptionsV3';
 import CategoriesV3 from './pages/CategoriesV3';
 import SavingsV3 from './pages/SavingsV3';
@@ -91,13 +92,14 @@ export default function App() {
                 <Route path="/forgot-password" element={<PublicOnlyRoute><LoginV3 /></PublicOnlyRoute>} />
                 <Route path="/reset-password" element={<LoginV3 />} />
 
-                <Route path="/" element={<PrivateRoute><HomeV3 /></PrivateRoute>} />
-                <Route path="/input" element={<PrivateRoute><InputDataV3 /></PrivateRoute>} />
+                <Route path="/" element={<PrivateRoute><HomeV31 /></PrivateRoute>} />
+                <Route path="/input" element={<PrivateRoute><InputDataV31 /></PrivateRoute>} />
                 <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
-                <Route path="/wallet" element={<PrivateRoute><DompetV3 /></PrivateRoute>} />
+                <Route path="/wallet" element={<PrivateRoute><DompetV31 /></PrivateRoute>} />
+                <Route path="/transfer" element={<PrivateRoute><TransferV31 /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><ProfileV3 /></PrivateRoute>} />
                 <Route path="/planning" element={<PrivateRoute><PlanningV3 /></PrivateRoute>} />
-                <Route path="/budget" element={<PrivateRoute><BudgetingV3 /></PrivateRoute>} />
+                <Route path="/budget" element={<PrivateRoute><BudgetingV31 /></PrivateRoute>} />
                 <Route path="/subscription" element={<PrivateRoute><SubscriptionsV3 /></PrivateRoute>} />
                 <Route path="/savings" element={<PrivateRoute><SavingsV3 /></PrivateRoute>} />
                 <Route path="/categories" element={<PrivateRoute><CategoriesV3 /></PrivateRoute>} />
