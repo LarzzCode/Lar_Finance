@@ -2,16 +2,16 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-import Login from './pages/Login';
+import LoginV2 from './pages/LoginV2';
 import HomeV2 from './pages/HomeV2';
 import InputDataV2 from './pages/InputDataV2';
-import Rekapan from './pages/Rekapan';
+import RekapanV2 from './pages/RekapanV2';
 import ProfileV2 from './pages/ProfileV2';
 import DompetV2 from './pages/DompetV2';
-import Budgeting from './pages/Budgeting';
-import Subscriptions from './pages/Subscriptions';
+import BudgetingV2 from './pages/BudgetingV2';
+import SubscriptionsV2 from './pages/SubscriptionsV2';
 import CategoriesV2 from './pages/CategoriesV2';
-import Savings from './pages/Savings';
+import SavingsV2 from './pages/SavingsV2';
 import Planning from './pages/Planning';
 import NotFound from './pages/NotFound';
 
@@ -19,13 +19,18 @@ import NavbarV2 from './components/NavbarV2';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-[3px] border-slate-200 border-t-slate-950 animate-spin" />
+      </div>
+    );
+  }
   return user ? children : <Navigate to="/login" replace />;
 }
 
 function AppLayout({ children }) {
   const { user } = useAuth();
-
   return (
     <>
       {user && <NavbarV2 />}
@@ -49,24 +54,25 @@ export default function App() {
               color: '#fff',
               fontWeight: 700,
               fontSize: '13px',
+              padding: '12px 16px',
             },
           }}
         />
 
         <AppLayout>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<LoginV2 />} />
 
             <Route path="/" element={<PrivateRoute><HomeV2 /></PrivateRoute>} />
             <Route path="/input" element={<PrivateRoute><InputDataV2 /></PrivateRoute>} />
-            <Route path="/rekap" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
+            <Route path="/rekap" element={<PrivateRoute><RekapanV2 /></PrivateRoute>} />
             <Route path="/wallet" element={<PrivateRoute><DompetV2 /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
 
             <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
-            <Route path="/budget" element={<PrivateRoute><Budgeting /></PrivateRoute>} />
-            <Route path="/subscription" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
-            <Route path="/savings" element={<PrivateRoute><Savings /></PrivateRoute>} />
+            <Route path="/budget" element={<PrivateRoute><BudgetingV2 /></PrivateRoute>} />
+            <Route path="/subscription" element={<PrivateRoute><SubscriptionsV2 /></PrivateRoute>} />
+            <Route path="/savings" element={<PrivateRoute><SavingsV2 /></PrivateRoute>} />
             <Route path="/categories" element={<PrivateRoute><CategoriesV2 /></PrivateRoute>} />
 
             <Route path="*" element={<PrivateRoute><NotFound /></PrivateRoute>} />
