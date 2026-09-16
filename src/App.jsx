@@ -6,11 +6,11 @@ import Login from './pages/Login';
 import HomeV2 from './pages/HomeV2';
 import InputDataV2 from './pages/InputDataV2';
 import Rekapan from './pages/Rekapan';
-import Profile from './pages/Profile';
+import ProfileV2 from './pages/ProfileV2';
 import DompetV2 from './pages/DompetV2';
 import Budgeting from './pages/Budgeting';
 import Subscriptions from './pages/Subscriptions';
-import Categories from './pages/Categories';
+import CategoriesV2 from './pages/CategoriesV2';
 import Savings from './pages/Savings';
 import Planning from './pages/Planning';
 import NotFound from './pages/NotFound';
@@ -61,13 +61,13 @@ export default function App() {
             <Route path="/input" element={<PrivateRoute><InputDataV2 /></PrivateRoute>} />
             <Route path="/rekap" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
             <Route path="/wallet" element={<PrivateRoute><DompetV2 /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
 
             <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
             <Route path="/budget" element={<PrivateRoute><Budgeting /></PrivateRoute>} />
             <Route path="/subscription" element={<PrivateRoute><Subscriptions /></PrivateRoute>} />
             <Route path="/savings" element={<PrivateRoute><Savings /></PrivateRoute>} />
-            <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
+            <Route path="/categories" element={<PrivateRoute><CategoriesV2 /></PrivateRoute>} />
 
             <Route path="*" element={<PrivateRoute><NotFound /></PrivateRoute>} />
           </Routes>
