@@ -4,9 +4,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 import LoginV2 from './pages/LoginV2';
-import HomeV23 from './pages/HomeV23';
+import HomeV3 from './pages/HomeV3';
 import InputDataV23 from './pages/InputDataV23';
-import RekapanV24 from './pages/RekapanV24';
+import RekapanV3 from './pages/RekapanV3';
 import ProfileV2 from './pages/ProfileV2';
 import DompetV3 from './pages/DompetV3';
 import BudgetingV22 from './pages/BudgetingV22';
@@ -76,9 +76,9 @@ export default function App() {
             <AppLayout>
               <Routes>
                 <Route path="/login" element={<LoginV2 />} />
-                <Route path="/" element={<PrivateRoute><HomeV23 /></PrivateRoute>} />
+                <Route path="/" element={<PrivateRoute><HomeV3 /></PrivateRoute>} />
                 <Route path="/input" element={<PrivateRoute><InputDataV23 /></PrivateRoute>} />
-                <Route path="/rekap" element={<PrivateRoute><RekapanV24 /></PrivateRoute>} />
+                <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV3 /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
                 <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
