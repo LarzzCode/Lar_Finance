@@ -1,16 +1,44 @@
-# React + Vite
+# Lar Finance V2
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Lar Finance is a personal finance management web app built with React, Vite, Tailwind CSS, and Supabase.
 
-Currently, two official plugins are available:
+## Core features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Supabase authentication and user profiles
+- Monthly cashflow dashboard
+- Income and expense tracking
+- Wallet management
+- Categories with custom icons
+- Monthly budgeting and spending progress
+- Recurring subscription tracking
+- Savings goals
+- Reports with charts and Excel export
+- PWA support
 
-## React Compiler
+## Security and data correctness
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The V2 frontend scopes user-owned financial queries with the authenticated Supabase user id and adds guards for destructive actions such as deleting wallets or categories that are still referenced by financial records.
 
-## Expanding the ESLint configuration
+See `docs/SECURITY_AUDIT.md` for the current audit notes and `supabase/rls_preflight.sql` for read-only checks to run before changing production RLS policies.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+> Important: frontend filtering is defense-in-depth and does not replace Supabase Row Level Security.
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
+
+Create local environment variables for:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_KEY=
+```
+
+Environment files are excluded from git.
+
+## Production
+
+Live app: https://finance-app-lar.vercel.app/
