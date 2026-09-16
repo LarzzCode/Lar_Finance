@@ -6,7 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import LoginV2 from './pages/LoginV2';
 import HomeV23 from './pages/HomeV23';
 import InputDataV23 from './pages/InputDataV23';
-import RekapanV23 from './pages/RekapanV23';
+import RekapanV24 from './pages/RekapanV24';
 import ProfileV2 from './pages/ProfileV2';
 import DompetV22 from './pages/DompetV22';
 import BudgetingV22 from './pages/BudgetingV22';
@@ -76,7 +76,7 @@ export default function App() {
 
                 <Route path="/" element={<PrivateRoute><HomeV23 /></PrivateRoute>} />
                 <Route path="/input" element={<PrivateRoute><InputDataV23 /></PrivateRoute>} />
-                <Route path="/rekap" element={<PrivateRoute><RekapanV23 /></PrivateRoute>} />
+                <Route path="/rekap" element={<PrivateRoute><RekapanV24 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV22 /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
 
