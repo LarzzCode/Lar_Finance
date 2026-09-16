@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Login from './pages/Login';
 import HomeV2 from './pages/HomeV2';
-import InputData from './pages/InputData';
+import InputDataV2 from './pages/InputDataV2';
 import Rekapan from './pages/Rekapan';
 import Profile from './pages/Profile';
 import Dompet from './pages/Dompet';
@@ -58,7 +58,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
 
             <Route path="/" element={<PrivateRoute><HomeV2 /></PrivateRoute>} />
-            <Route path="/input" element={<PrivateRoute><InputData /></PrivateRoute>} />
+            <Route path="/input" element={<PrivateRoute><InputDataV2 /></PrivateRoute>} />
             <Route path="/rekap" element={<PrivateRoute><Rekapan /></PrivateRoute>} />
             <Route path="/wallet" element={<PrivateRoute><Dompet /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
