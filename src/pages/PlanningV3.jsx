@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, CalendarClock, LayoutGrid, PiggyBank, Target, UserRound } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarDays, LayoutGrid, PiggyBank, Repeat2, Target, UserRound } from 'lucide-react';
 
 const items = [
   { title: 'Budget Bulanan', description: 'Atur batas pengeluaran per kategori dan pantau realisasinya terhadap pemasukan.', path: '/budget', icon: Target, tone: 'indigo' },
   { title: 'Langganan Rutin', description: 'Pantau tagihan bulanan, jatuh tempo, dan pembayaran rutin dalam satu tempat.', path: '/subscription', icon: CalendarClock, tone: 'amber' },
+  { title: 'Transaksi Rutin', description: 'Simpan template gaji atau pengeluaran berulang lalu catat dengan satu konfirmasi.', path: '/recurring', icon: Repeat2, tone: 'sky' },
+  { title: 'Kalender Cashflow', description: 'Baca pemasukan, pengeluaran, transfer, dan jadwal rutin berdasarkan tanggal.', path: '/calendar', icon: CalendarDays, tone: 'violet' },
   { title: 'Tabungan Impian', description: 'Buat target finansial dan lihat progres tabungan menuju tujuan yang ingin dicapai.', path: '/savings', icon: PiggyBank, tone: 'emerald' },
   { title: 'Kategori', description: 'Kelola kategori pemasukan dan pengeluaran agar laporan keuangan tetap rapi.', path: '/categories', icon: LayoutGrid, tone: 'rose' },
   { title: 'Profil & Akun', description: 'Perbarui nama, foto profil, dan akses pengaturan akun Lar Finance.', path: '/profile', icon: UserRound, tone: 'slate' },
@@ -15,6 +17,8 @@ const toneClass = {
   amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-300',
   emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
   rose: 'bg-rose-500/10 text-rose-500 dark:text-rose-300',
+  sky: 'bg-sky-500/10 text-sky-600 dark:text-sky-300',
+  violet: 'bg-violet-500/10 text-violet-600 dark:text-violet-300',
   slate: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
 };
 
@@ -25,7 +29,7 @@ export default function PlanningV3() {
         <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8 md:mb-10">
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400 mb-2">Financial planning</p>
           <h1 className="text-[2rem] md:text-[2.8rem] leading-tight font-semibold tracking-[-0.04em] mb-3">Rencanakan uangmu dengan lebih tenang</h1>
-          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">Budget, tagihan rutin, tabungan, kategori, dan profil berada dalam satu area yang ringan untuk dibaca dan cepat diakses.</p>
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">Budget, tagihan, transaksi rutin, kalender cashflow, goals, dan master data berada dalam satu area yang ringan untuk dibaca.</p>
         </motion.header>
 
         <div className="grid md:grid-cols-2 gap-4 md:gap-5">

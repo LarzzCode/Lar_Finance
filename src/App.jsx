@@ -10,6 +10,8 @@ import RekapanV3 from './pages/RekapanV3';
 import ProfileV3 from './pages/ProfileV3';
 import DompetV31 from './pages/DompetV31';
 import TransferV31 from './pages/TransferV31';
+import CalendarV32 from './pages/CalendarV32';
+import RecurringV32 from './pages/RecurringV32';
 import BudgetingV31 from './pages/BudgetingV31';
 import SubscriptionsV3 from './pages/SubscriptionsV3';
 import CategoriesV3 from './pages/CategoriesV3';
@@ -97,6 +99,8 @@ export default function App() {
                 <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV31 /></PrivateRoute>} />
                 <Route path="/transfer" element={<PrivateRoute><TransferV31 /></PrivateRoute>} />
+                <Route path="/calendar" element={<PrivateRoute><CalendarV32 /></PrivateRoute>} />
+                <Route path="/recurring" element={<PrivateRoute><RecurringV32 /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><ProfileV3 /></PrivateRoute>} />
                 <Route path="/planning" element={<PrivateRoute><PlanningV3 /></PrivateRoute>} />
                 <Route path="/budget" element={<PrivateRoute><BudgetingV31 /></PrivateRoute>} />
