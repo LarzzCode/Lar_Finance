@@ -4,13 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 import LoginV2 from './pages/LoginV2';
 import HomeV2 from './pages/HomeV2';
-import InputDataV2 from './pages/InputDataV2';
+import InputDataSecure from './pages/InputDataSecure';
 import RekapanV2 from './pages/RekapanV2';
 import ProfileV2 from './pages/ProfileV2';
-import DompetV2 from './pages/DompetV2';
+import DompetSecure from './pages/DompetSecure';
 import BudgetingV2 from './pages/BudgetingV2';
-import SubscriptionsV2 from './pages/SubscriptionsV2';
-import CategoriesV2 from './pages/CategoriesV2';
+import SubscriptionsSecure from './pages/SubscriptionsSecure';
+import CategoriesSecure from './pages/CategoriesSecure';
 import SavingsV2 from './pages/SavingsV2';
 import Planning from './pages/Planning';
 import NotFound from './pages/NotFound';
@@ -64,16 +64,16 @@ export default function App() {
             <Route path="/login" element={<LoginV2 />} />
 
             <Route path="/" element={<PrivateRoute><HomeV2 /></PrivateRoute>} />
-            <Route path="/input" element={<PrivateRoute><InputDataV2 /></PrivateRoute>} />
+            <Route path="/input" element={<PrivateRoute><InputDataSecure /></PrivateRoute>} />
             <Route path="/rekap" element={<PrivateRoute><RekapanV2 /></PrivateRoute>} />
-            <Route path="/wallet" element={<PrivateRoute><DompetV2 /></PrivateRoute>} />
+            <Route path="/wallet" element={<PrivateRoute><DompetSecure /></PrivateRoute>} />
             <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
 
             <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
             <Route path="/budget" element={<PrivateRoute><BudgetingV2 /></PrivateRoute>} />
-            <Route path="/subscription" element={<PrivateRoute><SubscriptionsV2 /></PrivateRoute>} />
+            <Route path="/subscription" element={<PrivateRoute><SubscriptionsSecure /></PrivateRoute>} />
             <Route path="/savings" element={<PrivateRoute><SavingsV2 /></PrivateRoute>} />
-            <Route path="/categories" element={<PrivateRoute><CategoriesV2 /></PrivateRoute>} />
+            <Route path="/categories" element={<PrivateRoute><CategoriesSecure /></PrivateRoute>} />
 
             <Route path="*" element={<PrivateRoute><NotFound /></PrivateRoute>} />
           </Routes>
