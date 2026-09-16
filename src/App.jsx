@@ -16,7 +16,7 @@ import SavingsV2 from './pages/SavingsV2';
 import Planning from './pages/Planning';
 import NotFound from './pages/NotFound';
 
-import NavbarV23 from './components/NavbarV23';
+import NavbarV3 from './components/NavbarV3';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import NetworkStatus from './components/NetworkStatus';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
@@ -25,10 +25,10 @@ function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F8FA] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 mx-auto rounded-full border-[3px] border-slate-200 border-t-slate-950 animate-spin" />
-          <p className="text-xs font-black text-slate-400 mt-4 uppercase tracking-wider">Menyiapkan Lar Finance</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="liquid-nav rounded-[1.75rem] px-8 py-7 text-center">
+          <div className="w-9 h-9 mx-auto rounded-full border-[2px] border-slate-300/70 border-t-slate-700 dark:border-slate-600 dark:border-t-white animate-spin" />
+          <p className="text-[11px] font-medium text-slate-500 mt-4 tracking-wide">Menyiapkan Lar Finance</p>
         </div>
       </div>
     );
@@ -39,12 +39,12 @@ function PrivateRoute({ children }) {
 function AppLayout({ children }) {
   const { user } = useAuth();
   return (
-    <>
+    <div className="liquid-app">
       <NetworkStatus />
-      {user && <NavbarV23 />}
+      {user && <NavbarV3 />}
       {children}
       {user && <PwaInstallPrompt />}
-    </>
+    </div>
   );
 }
 
@@ -60,12 +60,15 @@ export default function App() {
               toastOptions={{
                 duration: 3200,
                 style: {
-                  borderRadius: '16px',
-                  background: '#0f172a',
+                  borderRadius: '18px',
+                  background: 'rgba(15,23,42,.88)',
                   color: '#fff',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   fontSize: '13px',
                   padding: '12px 16px',
+                  backdropFilter: 'blur(18px)',
+                  border: '1px solid rgba(255,255,255,.10)',
+                  boxShadow: '0 18px 50px rgba(15,23,42,.18)',
                 },
               }}
             />
@@ -73,19 +76,16 @@ export default function App() {
             <AppLayout>
               <Routes>
                 <Route path="/login" element={<LoginV2 />} />
-
                 <Route path="/" element={<PrivateRoute><HomeV23 /></PrivateRoute>} />
                 <Route path="/input" element={<PrivateRoute><InputDataV23 /></PrivateRoute>} />
                 <Route path="/rekap" element={<PrivateRoute><RekapanV24 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV22 /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><ProfileV2 /></PrivateRoute>} />
-
                 <Route path="/planning" element={<PrivateRoute><Planning /></PrivateRoute>} />
                 <Route path="/budget" element={<PrivateRoute><BudgetingV22 /></PrivateRoute>} />
                 <Route path="/subscription" element={<PrivateRoute><SubscriptionsV22 /></PrivateRoute>} />
                 <Route path="/savings" element={<PrivateRoute><SavingsV2 /></PrivateRoute>} />
                 <Route path="/categories" element={<PrivateRoute><CategoriesV22 /></PrivateRoute>} />
-
                 <Route path="*" element={<PrivateRoute><NotFound /></PrivateRoute>} />
               </Routes>
             </AppLayout>
