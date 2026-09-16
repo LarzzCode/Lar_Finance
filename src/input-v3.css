@@ -1,0 +1,33 @@
+.liquid-app .lf-amount-input,
+.liquid-app .lf-amount-input:hover,
+.liquid-app .lf-amount-input:focus,
+.liquid-app .lf-amount-input:focus-visible,
+.dark .liquid-app .lf-amount-input,
+.dark .liquid-app .lf-amount-input:hover,
+.dark .liquid-app .lf-amount-input:focus,
+.dark .liquid-app .lf-amount-input:focus-visible {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  caret-color: currentColor;
+}
+
+.liquid-app .lf-amount-input::placeholder {
+  color: rgba(148, 163, 184, 0.28) !important;
+  opacity: 1;
+}
+
+.dark .liquid-app .lf-amount-input::placeholder {
+  color: rgba(100, 116, 139, 0.45) !important;
+}
+
+@media (max-width: 640px) {
+  .liquid-app .lf-amount-input {
+    font-size: 2.55rem;
+  }
+}
