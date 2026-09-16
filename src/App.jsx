@@ -4,7 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 import LoginV3 from './pages/LoginV3';
-import HomeV31 from './pages/HomeV31';
+import HomeV33 from './pages/HomeV33';
+import ForecastV33 from './pages/ForecastV33';
 import InputDataV31 from './pages/InputDataV31';
 import RekapanV3 from './pages/RekapanV3';
 import ProfileV3 from './pages/ProfileV3';
@@ -94,7 +95,8 @@ export default function App() {
                 <Route path="/forgot-password" element={<PublicOnlyRoute><LoginV3 /></PublicOnlyRoute>} />
                 <Route path="/reset-password" element={<LoginV3 />} />
 
-                <Route path="/" element={<PrivateRoute><HomeV31 /></PrivateRoute>} />
+                <Route path="/" element={<PrivateRoute><HomeV33 /></PrivateRoute>} />
+                <Route path="/forecast" element={<PrivateRoute><ForecastV33 /></PrivateRoute>} />
                 <Route path="/input" element={<PrivateRoute><InputDataV31 /></PrivateRoute>} />
                 <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV31 /></PrivateRoute>} />
