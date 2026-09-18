@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarRange, Gauge, ShieldCheck, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { rupiah } from '../lib/financeDataV31';
+import { rupiah } from '../lib/financeDataV35';
 import { buildFinancialForecast } from '../lib/forecastingV33';
 
 export default function ForecastSnapshotV33() {
@@ -15,21 +15,23 @@ export default function ForecastSnapshotV33() {
     if (!user) return;
     const load = async () => {
       setLoading(true);
-      const [txRes, walletRes, transferRes, budgetRes, subRes, recurringRes] = await Promise.all([
+      const [txRes, walletRes, transferRes, adjustmentRes, budgetRes, subRes, recurringRes] = await Promise.all([
         supabase.from('transactions').select('amount, category_id, wallet_id, transaction_date, description, categories(type)').eq('user_id', user.id),
         supabase.from('wallets').select('*').eq('user_id', user.id),
         supabase.from('transfers').select('amount, from_wallet_id, to_wallet_id, transfer_date').eq('user_id', user.id),
+        supabase.from('wallet_adjustments').select('amount, wallet_id, adjustment_date, actual_balance, created_at').eq('user_id', user.id),
         supabase.from('budgets').select('amount, category_id').eq('user_id', user.id),
         supabase.from('subscriptions').select('id, name, amount, due_date, category_id').eq('user_id', user.id),
         supabase.from('recurring_transactions').select('id, name, type, amount, day_of_month, category_id, is_active, last_posted_month').eq('user_id', user.id),
       ]);
 
-      const hasError = [txRes, walletRes, transferRes, budgetRes, subRes, recurringRes].some((result) => result.error);
+      const hasError = [txRes, walletRes, transferRes, adjustmentRes, budgetRes, subRes, recurringRes].some((result) => result.error);
       if (!hasError) {
         setData(buildFinancialForecast({
           transactions: txRes.data || [],
           wallets: walletRes.data || [],
           transfers: transferRes.data || [],
+          adjustments: adjustmentRes.data || [],
           budgets: budgetRes.data || [],
           subscriptions: subRes.data || [],
           recurring: recurringRes.data || [],

@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { loadAccessibleCategories, rupiah } from '../lib/financeData';
+import { loadAccessibleCategories, rupiah } from '../lib/financeDataV35';
 
 const getWeek = (date) => {
   const start = startOfWeek(date, { weekStartsOn: 1 });
@@ -164,10 +164,10 @@ export default function RekapanV3() {
   };
 
   const remove = async () => {
-    if (!selected || !window.confirm('Hapus transaksi ini permanen?')) return;
-    const { error } = await supabase.from('transactions').delete().eq('id', selected.id).eq('user_id', user.id);
+    if (!selected || !window.confirm('Pindahkan transaksi ini ke Trash? Kamu masih bisa memulihkannya selama 30 hari.')) return;
+    const { error } = await supabase.rpc('trash_transaction', { p_transaction_id: selected.id });
     if (error) return toast.error(error.message);
-    toast.success('Transaksi dihapus');
+    toast.success('Transaksi dipindahkan ke Trash');
     closeEdit();
     load();
   };
@@ -316,7 +316,7 @@ export default function RekapanV3() {
                 <label className="block"><span className="text-[10px] uppercase tracking-wide font-medium text-slate-400">Kategori</span><select required value={editForm.category_id} onChange={(event) => setEditForm({ ...editForm, category_id: event.target.value })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none">{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
                 <label className="block"><span className="text-[10px] uppercase tracking-wide font-medium text-slate-400">Dompet</span><select required value={editForm.wallet_id} onChange={(event) => setEditForm({ ...editForm, wallet_id: event.target.value })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none">{wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}</select></label>
                 <label className="block"><span className="text-[10px] uppercase tracking-wide font-medium text-slate-400">Catatan</span><textarea rows={3} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none resize-none" /></label>
-                <div className="grid grid-cols-[.65fr_1.35fr] gap-3 pt-2"><button type="button" onClick={remove} className="h-12 rounded-2xl bg-rose-500/10 text-rose-500 dark:text-rose-300 font-medium text-sm inline-flex items-center justify-center gap-2"><Trash2 size={15} /> Hapus</button><button disabled={saving} type="submit" className="liquid-primary h-12 rounded-2xl text-white font-semibold text-sm disabled:opacity-60">{saving ? 'Menyimpan…' : 'Simpan perubahan'}</button></div>
+                <div className="grid grid-cols-[.65fr_1.35fr] gap-3 pt-2"><button type="button" onClick={remove} className="h-12 rounded-2xl bg-rose-500/10 text-rose-500 dark:text-rose-300 font-medium text-sm inline-flex items-center justify-center gap-2"><Trash2 size={15} /> Trash</button><button disabled={saving} type="submit" className="liquid-primary h-12 rounded-2xl text-white font-semibold text-sm disabled:opacity-60">{saving ? 'Menyimpan…' : 'Simpan perubahan'}</button></div>
               </form>
             </motion.div>
           </div>

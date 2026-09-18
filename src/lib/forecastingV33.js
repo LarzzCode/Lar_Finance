@@ -1,5 +1,5 @@
 import { endOfMonth, format, startOfMonth } from 'date-fns';
-import { calculateWalletBalances } from './financeDataV31';
+import { calculateWalletBalances } from './financeDataV35';
 
 const normalize = (value) => (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 const money = (value) => Number(value || 0);
@@ -12,6 +12,7 @@ export function buildFinancialForecast({
   transactions = [],
   wallets = [],
   transfers = [],
+  adjustments = [],
   budgets = [],
   subscriptions = [],
   recurring = [],
@@ -105,7 +106,7 @@ export function buildFinancialForecast({
   const forecastBudgetCeiling = budgetTotal > 0 ? actual.expense + Math.max(rawBudgetRoom, 0) : null;
   const projectedOverBudget = forecastBudgetCeiling == null ? 0 : projectedExpense - forecastBudgetCeiling;
 
-  const calculatedWallets = calculateWalletBalances(wallets, transactions, transfers, date);
+  const calculatedWallets = calculateWalletBalances(wallets, transactions, transfers, adjustments, date);
   const currentLiquidity = calculatedWallets.reduce((sum, wallet) => sum + money(wallet.month_balance), 0);
   const liquidityAfterCommitments = currentLiquidity + scheduledIncome - scheduledExpense;
   const safeToSpend = Math.max(0, discretionaryBudgetRoom == null

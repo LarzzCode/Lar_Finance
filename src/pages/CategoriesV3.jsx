@@ -62,14 +62,16 @@ export default function CategoriesV3() {
 
   const remove = async (category) => {
     if (isSystemCategory(category)) return toast.error('Kategori bawaan tidak bisa dihapus');
-    const [txRes, budgetRes, subRes] = await Promise.all([
+    const [txRes, budgetRes, subRes, ruleRes, trashRes] = await Promise.all([
       supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category_id', category.id),
       supabase.from('budgets').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category_id', category.id),
       supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category_id', category.id),
+      supabase.from('category_rules').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category_id', category.id),
+      supabase.from('transaction_trash').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('category_id', category.id),
     ]);
-    const error = txRes.error || budgetRes.error || subRes.error;
+    const error = txRes.error || budgetRes.error || subRes.error || ruleRes.error || trashRes.error;
     if (error) return toast.error(error.message);
-    const references = (txRes.count || 0) + (budgetRes.count || 0) + (subRes.count || 0);
+    const references = (txRes.count || 0) + (budgetRes.count || 0) + (subRes.count || 0) + (ruleRes.count || 0) + (trashRes.count || 0);
     if (references > 0) return toast.error(`Kategori masih dipakai ${references} data. Edit namanya jika perlu.`);
     if (!window.confirm(`Hapus kategori "${category.name}"?`)) return;
     const { error: deleteError } = await supabase.from('categories').delete().eq('id', category.id).eq('user_id', user.id);

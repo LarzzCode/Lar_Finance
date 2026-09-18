@@ -5,7 +5,7 @@ import { id } from 'date-fns/locale';
 import { ArrowLeft, ArrowDownRight, ArrowUpRight, CalendarDays, Gauge, ShieldCheck, Sparkles, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { rupiah } from '../lib/financeDataV31';
+import { rupiah } from '../lib/financeDataV35';
 import { buildFinancialForecast } from '../lib/forecastingV33';
 
 export default function ForecastV33() {
@@ -19,21 +19,23 @@ export default function ForecastV33() {
     const load = async () => {
       setLoading(true);
       setError('');
-      const [txRes, walletRes, transferRes, budgetRes, subRes, recurringRes] = await Promise.all([
+      const [txRes, walletRes, transferRes, adjustmentRes, budgetRes, subRes, recurringRes] = await Promise.all([
         supabase.from('transactions').select('amount, category_id, wallet_id, transaction_date, description, categories(type)').eq('user_id', user.id),
         supabase.from('wallets').select('*').eq('user_id', user.id),
         supabase.from('transfers').select('amount, from_wallet_id, to_wallet_id, transfer_date').eq('user_id', user.id),
+        supabase.from('wallet_adjustments').select('amount, wallet_id, adjustment_date, actual_balance, created_at').eq('user_id', user.id),
         supabase.from('budgets').select('amount, category_id').eq('user_id', user.id),
         supabase.from('subscriptions').select('id, name, amount, due_date, category_id').eq('user_id', user.id),
         supabase.from('recurring_transactions').select('id, name, type, amount, day_of_month, category_id, is_active, last_posted_month').eq('user_id', user.id),
       ]);
-      const failed = [txRes, walletRes, transferRes, budgetRes, subRes, recurringRes].find((result) => result.error);
+      const failed = [txRes, walletRes, transferRes, adjustmentRes, budgetRes, subRes, recurringRes].find((result) => result.error);
       if (failed?.error) setError(failed.error.message || 'Forecast gagal dimuat');
       else {
         setForecast(buildFinancialForecast({
           transactions: txRes.data || [],
           wallets: walletRes.data || [],
           transfers: transferRes.data || [],
+          adjustments: adjustmentRes.data || [],
           budgets: budgetRes.data || [],
           subscriptions: subRes.data || [],
           recurring: recurringRes.data || [],
@@ -72,7 +74,7 @@ export default function ForecastV33() {
           <Link to="/" className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-5"><ArrowLeft size={15} /> Dashboard</Link>
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300 mb-2"><TrendingUp size={16} /><span className="text-[10px] uppercase tracking-[0.16em] font-medium">Lar Finance V3.3</span></div>
           <h1 className="text-[2rem] md:text-[2.8rem] leading-tight font-semibold tracking-[-0.045em]">Financial Forecasting</h1>
-          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 max-w-3xl leading-relaxed">Bukan prediksi AI acak. Angka di bawah dihitung dari transaksi aktual, ritme harian, saldo dompet bulan ini, budget, tagihan yang belum terbayar, dan recurring yang belum dicatat.</p>
+          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 max-w-3xl leading-relaxed">Bukan prediksi AI acak. Angka di bawah dihitung dari transaksi aktual, ritme harian, saldo dompet bulan ini termasuk hasil rekonsiliasi, budget, tagihan yang belum terbayar, dan recurring yang belum dicatat.</p>
         </header>
 
         {error && <div className="liquid-nav rounded-2xl p-4 text-sm text-rose-500 mb-5">{error}</div>}
