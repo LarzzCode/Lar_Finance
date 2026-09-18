@@ -130,6 +130,12 @@ export default function RekapanV37() {
 
   const maxMonth = Math.max(1, ...monthlyGroups.flatMap((month) => [month.income, month.expense]));
 
+  const editCategories = useMemo(() => {
+    const transactionType = selected?.categories?.type;
+    if (!transactionType) return categories;
+    return categories.filter((category) => category.type === transactionType);
+  }, [categories, selected]);
+
   const openEdit = (tx) => {
     setSelected(tx);
     setEditForm({
@@ -154,7 +160,15 @@ export default function RekapanV37() {
 
     const category = categories.find((item) => String(item.id) === String(editForm.category_id));
     const wallet = wallets.find((item) => String(item.id) === String(editForm.wallet_id));
+    const transactionType = selected?.categories?.type;
     if (!category || !wallet) return toast.error('Kategori atau dompet tidak valid');
+    if (transactionType && category.type !== transactionType) {
+      return toast.error(
+        transactionType === 'income'
+          ? 'Transaksi pemasukan hanya boleh memakai kategori pemasukan'
+          : 'Transaksi pengeluaran hanya boleh memakai kategori pengeluaran'
+      );
+    }
 
     setSaving(true);
     const { error } = await supabase.from('transactions').update({
@@ -385,7 +399,7 @@ export default function RekapanV37() {
                 <label className="block">
                   <span className="text-[10px] uppercase tracking-wide font-medium text-slate-400">Kategori</span>
                   <select required value={editForm.category_id} onChange={(event) => setEditForm({ ...editForm, category_id: event.target.value })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none">
-                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    {editCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                   </select>
                 </label>
                 <label className="block">
