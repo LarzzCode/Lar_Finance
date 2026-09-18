@@ -6,6 +6,8 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   CircleDollarSign,
+  Eye,
+  EyeOff,
   PiggyBank,
   ReceiptText,
   Target,
@@ -154,8 +156,13 @@ export default function HomeV37() {
                   <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Total pengeluaran</p>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Akumulasi seluruh transaksi sejak mulai digunakan.</p>
                 </div>
-                <button onClick={() => setHideAmount((value) => !value)} className="liquid-nav-pill w-10 h-10 rounded-2xl">
-                  {hideAmount ? '••' : 'Rp'}
+                <button
+                  onClick={() => setHideAmount((value) => !value)}
+                  className="liquid-nav-pill w-10 h-10 rounded-2xl inline-flex items-center justify-center text-slate-700 dark:text-slate-200"
+                  aria-label={hideAmount ? 'Tampilkan saldo' : 'Sembunyikan saldo'}
+                  title={hideAmount ? 'Tampilkan saldo' : 'Sembunyikan saldo'}
+                >
+                  {hideAmount ? <EyeOff size={18} strokeWidth={1.9} /> : <Eye size={18} strokeWidth={1.9} />}
                 </button>
               </div>
               <p className="lf-money text-[clamp(1.85rem,9.2vw,2.8rem)] md:text-[4.5rem] leading-none font-semibold tracking-[-0.055em] mt-5 whitespace-nowrap">{display(lifetime.expense)}</p>
