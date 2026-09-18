@@ -87,7 +87,7 @@ export default function NavbarV3() {
             if (isFab) {
               return (
                 <Link key={path} to={path} className="flex flex-col items-center justify-end gap-1 relative -top-3">
-                  <motion.span whileTap={{ scale: .93 }} className="liquid-primary w-13 h-13 rounded-[1.25rem] text-white flex items-center justify-center ring-[3px] ring-white/60 dark:ring-slate-900/70"><Icon size={24} strokeWidth={2} /></motion.span>
+                  <motion.span whileTap={{ scale: .93 }} className="liquid-primary w-[3.25rem] h-[3.25rem] rounded-[1.25rem] text-white flex items-center justify-center ring-[3px] ring-white/60 dark:ring-slate-900/70"><Icon size={24} strokeWidth={2} /></motion.span>
                   <span className="text-[9px] font-medium text-slate-700 dark:text-slate-300">{label}</span>
                 </Link>
               );
