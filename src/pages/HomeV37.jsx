@@ -128,21 +128,21 @@ export default function HomeV37() {
   return (
     <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <header className="flex items-start justify-between gap-4 mb-8">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Dashboard · Lifetime cashflow</p>
-            <h1 className="text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em] mt-1">Hi, {firstName}</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Angka utama sekarang dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.
-            </p>
+        <header className="mb-8">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Dashboard · Lifetime cashflow</p>
+          <div className="mt-1 flex items-center justify-between gap-4">
+            <h1 className="min-w-0 text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em]">Hi, {firstName}</h1>
+            <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden" aria-label="Buka profil">
+              <img
+                src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=111827&color=fff`}
+                alt="Profile"
+                className="lf-avatar w-11 h-11 aspect-square rounded-full object-cover object-center block shrink-0"
+              />
+            </Link>
           </div>
-          <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden mt-8 md:mt-0" aria-label="Buka profil">
-            <img
-              src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=111827&color=fff`}
-              alt="Profile"
-              className="lf-avatar w-11 h-11 aspect-square rounded-full object-cover object-center block shrink-0"
-            />
-          </Link>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Angka utama sekarang dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.
+          </p>
         </header>
 
         <section className="relative overflow-hidden rounded-[2.5rem] border border-white/70 dark:border-white/10 bg-white/52 dark:bg-slate-900/48 backdrop-blur-[30px] p-6 md:p-9 mb-5">
