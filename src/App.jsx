@@ -6,8 +6,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import LoginV3 from './pages/LoginV3';
 import HomeV33 from './pages/HomeV33';
 import ForecastV33 from './pages/ForecastV33';
-import SpendingInsightsV34 from './pages/SpendingInsightsV34';
-import InputDataV35 from './pages/InputDataV35';
+import SpendingInsightsV36 from './pages/SpendingInsightsV36';
+import InputDataV36 from './pages/InputDataV36';
 import RekapanV3 from './pages/RekapanV3';
 import ProfileV3 from './pages/ProfileV3';
 import DompetV35 from './pages/DompetV35';
@@ -18,10 +18,16 @@ import BudgetingV31 from './pages/BudgetingV31';
 import SubscriptionsV3 from './pages/SubscriptionsV3';
 import CategoriesV3 from './pages/CategoriesV3';
 import SavingsV3 from './pages/SavingsV3';
-import PlanningV3 from './pages/PlanningV3';
+import PlanningV36 from './pages/PlanningV36';
 import AutomationRulesV35 from './pages/AutomationRulesV35';
 import ReconciliationV35 from './pages/ReconciliationV35';
 import TrashV35 from './pages/TrashV35';
+import SinkingFundsV36 from './pages/SinkingFundsV36';
+import DebtsV36 from './pages/DebtsV36';
+import NetWorthV36 from './pages/NetWorthV36';
+import MoneyTagsV36 from './pages/MoneyTagsV36';
+import InboxV36 from './pages/InboxV36';
+import FinancialNotesV36 from './pages/FinancialNotesV36';
 import NotFound from './pages/NotFound';
 
 import NavbarV3 from './components/NavbarV3';
@@ -101,18 +107,24 @@ export default function App() {
 
                 <Route path="/" element={<PrivateRoute><HomeV33 /></PrivateRoute>} />
                 <Route path="/forecast" element={<PrivateRoute><ForecastV33 /></PrivateRoute>} />
-                <Route path="/insights" element={<PrivateRoute><SpendingInsightsV34 /></PrivateRoute>} />
-                <Route path="/input" element={<PrivateRoute><InputDataV35 /></PrivateRoute>} />
+                <Route path="/insights" element={<PrivateRoute><SpendingInsightsV36 /></PrivateRoute>} />
+                <Route path="/input" element={<PrivateRoute><InputDataV36 /></PrivateRoute>} />
                 <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV35 /></PrivateRoute>} />
                 <Route path="/transfer" element={<PrivateRoute><TransferV35 /></PrivateRoute>} />
                 <Route path="/calendar" element={<PrivateRoute><CalendarV32 /></PrivateRoute>} />
                 <Route path="/recurring" element={<PrivateRoute><RecurringV32 /></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><ProfileV3 /></PrivateRoute>} />
-                <Route path="/planning" element={<PrivateRoute><PlanningV3 /></PrivateRoute>} />
+                <Route path="/planning" element={<PrivateRoute><PlanningV36 /></PrivateRoute>} />
                 <Route path="/rules" element={<PrivateRoute><AutomationRulesV35 /></PrivateRoute>} />
                 <Route path="/reconcile" element={<PrivateRoute><ReconciliationV35 /></PrivateRoute>} />
                 <Route path="/trash" element={<PrivateRoute><TrashV35 /></PrivateRoute>} />
+                <Route path="/inbox" element={<PrivateRoute><InboxV36 /></PrivateRoute>} />
+                <Route path="/tags" element={<PrivateRoute><MoneyTagsV36 /></PrivateRoute>} />
+                <Route path="/sinking-funds" element={<PrivateRoute><SinkingFundsV36 /></PrivateRoute>} />
+                <Route path="/debts" element={<PrivateRoute><DebtsV36 /></PrivateRoute>} />
+                <Route path="/net-worth" element={<PrivateRoute><NetWorthV36 /></PrivateRoute>} />
+                <Route path="/notes" element={<PrivateRoute><FinancialNotesV36 /></PrivateRoute>} />
                 <Route path="/budget" element={<PrivateRoute><BudgetingV31 /></PrivateRoute>} />
                 <Route path="/subscription" element={<PrivateRoute><SubscriptionsV3 /></PrivateRoute>} />
                 <Route path="/savings" element={<PrivateRoute><SavingsV3 /></PrivateRoute>} />
