@@ -225,3 +225,61 @@ html.dark {
     filter: blur(68px);
   }
 }
+
+
+/* Mobile polish pass — safe areas, iOS form zoom, overflow and bottom sheets. */
+.liquid-app {
+  min-height: 100dvh;
+  overflow-x: clip;
+}
+
+.lf-avatar {
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  object-fit: cover;
+}
+
+.lf-money {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .liquid-app input:not(.lf-amount-input),
+  .liquid-app select,
+  .liquid-app textarea {
+    font-size: 16px !important;
+  }
+
+  .liquid-app select {
+    max-width: 100%;
+  }
+
+  .lf-mobile-nav {
+    left: .5rem !important;
+    right: .5rem !important;
+    bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(.625rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .lf-mobile-theme {
+    top: -3rem !important;
+  }
+
+  .lf-pwa-prompt {
+    bottom: calc(7.6rem + env(safe-area-inset-bottom)) !important;
+    max-height: min(68dvh, 34rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .lf-mobile-sheet {
+    max-height: 90dvh !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .lf-money {
+    overflow-wrap: anywhere;
+  }
+}

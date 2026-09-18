@@ -128,19 +128,19 @@ export default function HomeV37() {
   return (
     <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <header className="flex items-center justify-between gap-4 mb-8">
-          <div>
+        <header className="flex items-start justify-between gap-4 mb-8">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Dashboard · Lifetime cashflow</p>
             <h1 className="text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em] mt-1">Hi, {firstName}</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               Angka utama sekarang dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.
             </p>
           </div>
-          <Link to="/profile">
+          <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden" aria-label="Buka profil">
             <img
               src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=111827&color=fff`}
               alt="Profile"
-              className="w-11 h-11 rounded-full object-cover"
+              className="lf-avatar w-11 h-11 aspect-square rounded-full object-cover object-center block shrink-0"
             />
           </Link>
         </header>
@@ -158,17 +158,17 @@ export default function HomeV37() {
                   {hideAmount ? '••' : 'Rp'}
                 </button>
               </div>
-              <p className="text-[2.8rem] md:text-[4.5rem] leading-none font-semibold tracking-[-0.055em] mt-5">{display(lifetime.expense)}</p>
+              <p className="lf-money text-[clamp(1.85rem,9.2vw,2.8rem)] md:text-[4.5rem] leading-none font-semibold tracking-[-0.055em] mt-5 whitespace-nowrap">{display(lifetime.expense)}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="liquid-nav rounded-[1.6rem] p-4">
+              <div className="liquid-nav rounded-[1.6rem] p-4 min-w-0 overflow-hidden">
                 <p className="text-[10px] uppercase tracking-wide text-emerald-600">Total pemasukan</p>
-                <p className="text-lg font-semibold mt-2">{display(lifetime.income)}</p>
+                <p className="lf-money text-[clamp(.78rem,3.4vw,1.125rem)] md:text-lg font-semibold mt-2 break-words">{display(lifetime.income)}</p>
               </div>
-              <div className="liquid-nav rounded-[1.6rem] p-4">
+              <div className="liquid-nav rounded-[1.6rem] p-4 min-w-0 overflow-hidden">
                 <p className="text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-300">Net keseluruhan</p>
-                <p className={`text-lg font-semibold mt-2 ${net < 0 ? 'text-rose-500' : ''}`}>{display(net)}</p>
+                <p className={`lf-money text-[clamp(.78rem,3.4vw,1.125rem)] md:text-lg font-semibold mt-2 break-words ${net < 0 ? 'text-rose-500' : ''}`}>{display(net)}</p>
               </div>
             </div>
           </div>
@@ -269,11 +269,11 @@ export default function HomeV37() {
                   <div key={tx.id} className="py-4 flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{tx.description || tx.categories?.name || 'Transaksi'}</p>
-                      <p className="text-[11px] text-slate-400 mt-1">
+                      <p className="text-[11px] text-slate-400 mt-1 truncate">
                         {tx.categories?.name || 'Lainnya'} · {tx.wallets?.name || 'Manual'} · {tx.transaction_date}
                       </p>
                     </div>
-                    <p className={`text-sm font-semibold whitespace-nowrap ${income ? 'text-emerald-600' : 'text-rose-500'}`}>
+                    <p className={`lf-money max-w-[46%] text-right text-xs sm:text-sm font-semibold leading-tight break-words ${income ? 'text-emerald-600' : 'text-rose-500'}`}>
                       {income ? '+' : '-'}{rupiah(tx.amount)}
                     </p>
                   </div>

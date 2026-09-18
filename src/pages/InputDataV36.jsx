@@ -444,11 +444,11 @@ export default function InputDataV36() {
 
                   <div className="space-y-3">
                     {splits.map((row, index) => (
-                      <div key={index} className="grid grid-cols-[1fr_132px_auto] gap-2 items-center">
+                      <div key={index} className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_132px_auto] gap-2 items-center">
                         <select
                           value={row.category_id}
                           onChange={(e) => updateSplit(index, { category_id: e.target.value })}
-                          className="min-w-0 rounded-2xl px-3 py-3 text-sm font-medium outline-none"
+                          className="col-span-2 sm:col-span-1 min-w-0 w-full rounded-2xl px-3 py-3 text-sm font-medium outline-none"
                         >
                           <option value="">Pilih kategori</option>
                           {sortedCategories.map((category) => (

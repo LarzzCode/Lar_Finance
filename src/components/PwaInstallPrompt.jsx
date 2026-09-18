@@ -66,7 +66,7 @@ export default function PwaInstallPrompt() {
   if (!visible || installed || isStandalone) return null;
 
   return (
-    <div className="fixed z-[85] left-4 right-4 bottom-24 md:left-auto md:right-6 md:bottom-6 md:w-[380px] rounded-[1.75rem] bg-slate-950 text-white border border-white/10 shadow-2xl p-5">
+    <div className="lf-pwa-prompt fixed z-[85] left-4 right-4 bottom-24 md:left-auto md:right-6 md:bottom-6 md:w-[380px] rounded-[1.75rem] bg-slate-950 text-white border border-white/10 shadow-2xl p-5">
       <div className="flex items-start gap-4">
         <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
           <Smartphone size={20} />

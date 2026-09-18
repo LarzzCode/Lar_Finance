@@ -33,7 +33,7 @@ const mobileLinks = [
 
 const isPathActive = (pathname, path) => {
   if (path === '/') return pathname === '/';
-  if (path === '/planning') return ['/planning', '/budget', '/subscription', '/savings', '/categories'].includes(pathname);
+  if (path === '/planning') return ['/planning', '/budget', '/subscription', '/recurring', '/calendar', '/forecast', '/insights', '/inbox', '/rules', '/tags', '/reconcile', '/trash', '/savings', '/sinking-funds', '/debts', '/net-worth', '/notes', '/categories'].includes(pathname);
   return pathname === path;
 };
 
@@ -79,8 +79,8 @@ export default function NavbarV3() {
         </nav>
       </div>
 
-      <nav className="liquid-nav md:hidden fixed left-3 right-3 bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-50 rounded-[1.8rem] px-2.5 pt-2 pb-2.5">
-        <button onClick={toggleTheme} className="absolute right-1 -top-12 w-10 h-10 rounded-2xl liquid-nav-pill text-slate-600 dark:text-slate-300 flex items-center justify-center" aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}>{isDark ? <Sun size={16} /> : <Moon size={16} />}</button>
+      <nav className="lf-mobile-nav liquid-nav md:hidden fixed left-3 right-3 bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-50 rounded-[1.8rem] px-2.5 pt-2 pb-2.5">
+        <button onClick={toggleTheme} className="lf-mobile-theme absolute right-1 -top-12 w-10 h-10 rounded-2xl liquid-nav-pill text-slate-600 dark:text-slate-300 flex items-center justify-center" aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}>{isDark ? <Sun size={16} /> : <Moon size={16} />}</button>
         <div className="grid grid-cols-5 items-end">
           {mobileLinks.map(({ path, label, icon: Icon, isFab }) => {
             const active = isPathActive(location.pathname, path);
@@ -93,7 +93,7 @@ export default function NavbarV3() {
               );
             }
             return (
-              <Link key={path} to={path} className={`flex flex-col items-center gap-1 py-1.5 ${active ? 'text-slate-950 dark:text-white' : 'text-slate-400'}`}>
+              <Link key={path} to={path} className={`flex flex-col items-center justify-end gap-1 py-1.5 min-w-0 ${active ? 'text-slate-950 dark:text-white' : 'text-slate-400'}`}>
                 <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${active ? 'liquid-nav-pill' : ''}`}><Icon size={19} strokeWidth={active ? 2 : 1.8} /></span>
                 <span className="text-[9px] font-medium">{label}</span>
               </Link>

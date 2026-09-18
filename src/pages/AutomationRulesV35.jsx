@@ -264,7 +264,7 @@ export default function AutomationRulesV35() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 24 }}
-              className="liquid-nav w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 max-h-[92vh] overflow-y-auto"
+              className="lf-mobile-sheet liquid-nav w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 max-h-[92vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <div>

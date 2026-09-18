@@ -75,7 +75,7 @@ export default function MonthlyBackupReminder() {
 
   return (
     <div className="fixed inset-0 z-[140] bg-slate-950/35 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="liquid-nav w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 shadow-2xl">
+      <div className="lf-mobile-sheet liquid-nav w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 flex items-center justify-center">
             <Archive size={21} />

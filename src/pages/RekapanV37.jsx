@@ -33,7 +33,7 @@ const StatCard = ({ label, value, tone = 'slate', icon: Icon }) => {
         <span className="text-[10px] uppercase tracking-[0.14em] font-medium text-slate-400">{label}</span>
         <span className={`w-9 h-9 rounded-2xl inline-flex items-center justify-center ${toneClass}`}><Icon size={16} /></span>
       </div>
-      <p className="text-xl md:text-2xl font-semibold tracking-[-0.03em]">{value}</p>
+      <p className="lf-money text-lg sm:text-xl md:text-2xl font-semibold tracking-[-0.03em] break-words">{value}</p>
     </div>
   );
 };
@@ -278,19 +278,19 @@ export default function RekapanV37() {
                   </div>
 
                   <div className="space-y-2">
-                    <div className="grid grid-cols-[82px_1fr_auto] items-center gap-3">
+                    <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(76px,auto)] sm:grid-cols-[82px_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
                       <span className="text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Masuk</span>
                       <div className="h-2 rounded-full bg-emerald-500/10 overflow-hidden">
                         <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(month.income ? 4 : 0, (month.income / maxMonth) * 100)}%` }} />
                       </div>
-                      <span className="text-xs font-medium">{rupiah(month.income)}</span>
+                      <span className="lf-money text-[10px] sm:text-xs font-medium text-right whitespace-nowrap">{rupiah(month.income)}</span>
                     </div>
-                    <div className="grid grid-cols-[82px_1fr_auto] items-center gap-3">
+                    <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(76px,auto)] sm:grid-cols-[82px_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
                       <span className="text-[10px] uppercase tracking-wide text-rose-500">Keluar</span>
                       <div className="h-2 rounded-full bg-rose-500/10 overflow-hidden">
                         <div className="h-full rounded-full bg-rose-500" style={{ width: `${Math.max(month.expense ? 4 : 0, (month.expense / maxMonth) * 100)}%` }} />
                       </div>
-                      <span className="text-xs font-medium">{rupiah(month.expense)}</span>
+                      <span className="lf-money text-[10px] sm:text-xs font-medium text-right whitespace-nowrap">{rupiah(month.expense)}</span>
                     </div>
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export default function RekapanV37() {
                       <p className="text-sm font-semibold capitalize">{monthLabel(month.key)}</p>
                       <p className="text-[10px] text-slate-400 mt-1">{month.items.length} transaksi</p>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 sm:gap-7">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-7">
                       <div>
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Pemasukan</p>
                         <p className="text-xs md:text-sm font-semibold text-emerald-600 dark:text-emerald-300 mt-1">+{rupiah(month.income)}</p>
@@ -361,7 +361,7 @@ export default function RekapanV37() {
                               {(tx.tags || []).length > 0 && <p className="text-[10px] text-indigo-500 mt-1 truncate">{tx.tags.map((tag) => `#${tag}`).join(' ')}</p>}
                             </div>
                           </div>
-                          <p className={`font-semibold whitespace-nowrap text-sm ${income ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-500'}`}>
+                          <p className={`lf-money max-w-[44%] text-right font-semibold text-xs sm:text-sm leading-tight break-words ${income ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-500'}`}>
                             {income ? '+' : '-'}{rupiah(tx.amount)}
                           </p>
                         </button>
@@ -378,7 +378,7 @@ export default function RekapanV37() {
       <AnimatePresence>
         {selected && editForm && (
           <div className="fixed inset-0 z-[95] bg-slate-950/35 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 28 }} className="liquid-nav w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 max-h-[90vh] overflow-y-auto">
+            <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 28 }} className="lf-mobile-sheet liquid-nav w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.14em] font-medium text-slate-400">Edit transaksi</p>
