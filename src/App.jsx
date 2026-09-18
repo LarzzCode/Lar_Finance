@@ -4,11 +4,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 import LoginV3 from './pages/LoginV3';
-import HomeV33 from './pages/HomeV33';
+import HomeV37 from './pages/HomeV37';
 import ForecastV33 from './pages/ForecastV33';
 import SpendingInsightsV36 from './pages/SpendingInsightsV36';
 import InputDataV36 from './pages/InputDataV36';
-import RekapanV3 from './pages/RekapanV3';
+import RekapanV37 from './pages/RekapanV37';
 import ProfileV3 from './pages/ProfileV3';
 import DompetV35 from './pages/DompetV35';
 import TransferV35 from './pages/TransferV35';
@@ -105,11 +105,11 @@ export default function App() {
                 <Route path="/forgot-password" element={<PublicOnlyRoute><LoginV3 /></PublicOnlyRoute>} />
                 <Route path="/reset-password" element={<LoginV3 />} />
 
-                <Route path="/" element={<PrivateRoute><HomeV33 /></PrivateRoute>} />
+                <Route path="/" element={<PrivateRoute><HomeV37 /></PrivateRoute>} />
                 <Route path="/forecast" element={<PrivateRoute><ForecastV33 /></PrivateRoute>} />
                 <Route path="/insights" element={<PrivateRoute><SpendingInsightsV36 /></PrivateRoute>} />
                 <Route path="/input" element={<PrivateRoute><InputDataV36 /></PrivateRoute>} />
-                <Route path="/rekap" element={<PrivateRoute><RekapanV3 /></PrivateRoute>} />
+                <Route path="/rekap" element={<PrivateRoute><RekapanV37 /></PrivateRoute>} />
                 <Route path="/wallet" element={<PrivateRoute><DompetV35 /></PrivateRoute>} />
                 <Route path="/transfer" element={<PrivateRoute><TransferV35 /></PrivateRoute>} />
                 <Route path="/calendar" element={<PrivateRoute><CalendarV32 /></PrivateRoute>} />

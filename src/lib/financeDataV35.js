@@ -51,34 +51,32 @@ export function calculateWalletBalances(
   date = new Date(),
 ) {
   const { start, end } = currentMonthRange(date);
+  const today = format(date, 'yyyy-MM-dd');
 
   return wallets.map((wallet) => {
     const walletTx = transactions.filter((tx) => String(tx.wallet_id) === String(wallet.id));
     const incoming = transfers.filter((item) => String(item.to_wallet_id) === String(wallet.id));
     const outgoing = transfers.filter((item) => String(item.from_wallet_id) === String(wallet.id));
     const walletAdjustments = adjustments
-      .filter((item) => String(item.wallet_id) === String(wallet.id) && item.adjustment_date <= end)
+      .filter((item) => String(item.wallet_id) === String(wallet.id) && (!item.adjustment_date || item.adjustment_date <= today))
       .sort((a, b) => adjustmentSortValue(a).localeCompare(adjustmentSortValue(b)));
 
-    let allIncome = 0;
-    let allExpense = 0;
-    let monthIncome = 0;
-    let monthExpense = 0;
+    const totalIncome = walletTx
+      .filter((tx) => tx.categories?.type === 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const totalExpense = walletTx
+      .filter((tx) => tx.categories?.type !== 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
 
-    walletTx.forEach((tx) => {
-      const amount = Number(tx.amount || 0);
-      const isIncome = tx.categories?.type === 'income';
-      if (isIncome) allIncome += amount;
-      else allExpense += amount;
+    const monthIncome = walletTx
+      .filter((tx) => tx.transaction_date >= start && tx.transaction_date <= end && tx.categories?.type === 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    const monthExpense = walletTx
+      .filter((tx) => tx.transaction_date >= start && tx.transaction_date <= end && tx.categories?.type !== 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
 
-      if (tx.transaction_date >= start && tx.transaction_date <= end) {
-        if (isIncome) monthIncome += amount;
-        else monthExpense += amount;
-      }
-    });
-
-    const allTransferIn = incoming.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const allTransferOut = outgoing.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalTransferIn = incoming.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalTransferOut = outgoing.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const monthTransferIn = incoming
       .filter((item) => item.transfer_date >= start && item.transfer_date <= end)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -86,69 +84,55 @@ export function calculateWalletBalances(
       .filter((item) => item.transfer_date >= start && item.transfer_date <= end)
       .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-    const monthAdjustment = walletAdjustments
-      .filter((item) => item.adjustment_date >= start && item.adjustment_date <= end)
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
     const latestReconciliation = walletAdjustments.at(-1) || null;
     const startingBalance = Number(wallet.saldo_awal || 0);
 
-    let monthBalance;
-    let historicalBalance;
+    let currentBalance;
 
     if (latestReconciliation && Number.isFinite(Number(latestReconciliation.actual_balance))) {
       const anchorDate = latestReconciliation.adjustment_date;
-      const txAfterAnchor = walletTx.filter(
-        (tx) => tx.transaction_date > anchorDate && tx.transaction_date <= end
-      );
-      const incomeAfterAnchor = txAfterAnchor
-        .filter((tx) => tx.categories?.type === 'income')
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-      const expenseAfterAnchor = txAfterAnchor
-        .filter((tx) => tx.categories?.type !== 'income')
-        .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
-      const transferInAfterAnchor = incoming
-        .filter((item) => item.transfer_date > anchorDate && item.transfer_date <= end)
-        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-      const transferOutAfterAnchor = outgoing
-        .filter((item) => item.transfer_date > anchorDate && item.transfer_date <= end)
-        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const txAfterAnchor = walletTx.filter((tx) => !anchorDate || tx.transaction_date > anchorDate);
+      const transferInAfterAnchor = incoming.filter((item) => !anchorDate || item.transfer_date > anchorDate);
+      const transferOutAfterAnchor = outgoing.filter((item) => !anchorDate || item.transfer_date > anchorDate);
 
-      monthBalance =
+      currentBalance =
         Number(latestReconciliation.actual_balance || 0)
-        + incomeAfterAnchor
-        - expenseAfterAnchor
-        + transferInAfterAnchor
-        - transferOutAfterAnchor;
-
-      historicalBalance = monthBalance;
+        + txAfterAnchor
+          .filter((tx) => tx.categories?.type === 'income')
+          .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+        - txAfterAnchor
+          .filter((tx) => tx.categories?.type !== 'income')
+          .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+        + transferInAfterAnchor.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+        - transferOutAfterAnchor.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     } else {
-      monthBalance =
+      currentBalance =
         startingBalance
-        + monthIncome
-        - monthExpense
-        + monthTransferIn
-        - monthTransferOut;
-
-      historicalBalance =
-        startingBalance
-        + allIncome
-        - allExpense
-        + allTransferIn
-        - allTransferOut;
+        + totalIncome
+        - totalExpense
+        + totalTransferIn
+        - totalTransferOut;
     }
 
     return {
       ...wallet,
-      current_balance: monthBalance,
-      month_balance: monthBalance,
-      historical_balance: historicalBalance,
+      current_balance: currentBalance,
+      lifetime_balance: currentBalance,
+      historical_balance: currentBalance,
+
+      total_income: totalIncome,
+      total_expense: totalExpense,
+      total_net: totalIncome - totalExpense,
+      total_transfer_in: totalTransferIn,
+      total_transfer_out: totalTransferOut,
+
+      // Kept for monthly planning/forecast compatibility.
+      month_balance: currentBalance,
       month_income: monthIncome,
       month_expense: monthExpense,
       month_net: monthIncome - monthExpense,
       month_transfer_in: monthTransferIn,
       month_transfer_out: monthTransferOut,
-      month_adjustment: monthAdjustment,
       latest_reconciliation: latestReconciliation,
     };
   });

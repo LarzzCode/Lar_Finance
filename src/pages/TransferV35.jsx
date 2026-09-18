@@ -45,16 +45,16 @@ export default function TransferV35() {
   const target = useMemo(() => wallets.find((item) => String(item.id) === String(form.to)), [wallets, form.to]);
   const amount = Number(String(form.amount).replace(/\D/g, '') || 0);
   const formattedAmount = form.amount ? new Intl.NumberFormat('id-ID').format(amount) : '';
-  const afterSource = source ? Number(source.month_balance || 0) - amount : 0;
-  const afterTarget = target ? Number(target.month_balance || 0) + amount : 0;
-  const valid = source && target && String(source.id) !== String(target.id) && amount > 0 && amount <= Number(source.month_balance || 0);
+  const afterSource = source ? Number(source.current_balance || 0) - amount : 0;
+  const afterTarget = target ? Number(target.current_balance || 0) + amount : 0;
+  const valid = source && target && String(source.id) !== String(target.id) && amount > 0 && amount <= Number(source.current_balance || 0);
 
   const submit = async (event) => {
     event.preventDefault();
     if (!source || !target) return toast.error('Pilih dompet asal dan tujuan');
     if (String(source.id) === String(target.id)) return toast.error('Dompet asal dan tujuan harus berbeda');
     if (amount <= 0) return toast.error('Nominal transfer harus lebih dari 0');
-    if (amount > Number(source.month_balance || 0)) return toast.error('Saldo dompet asal tidak mencukupi');
+    if (amount > Number(source.current_balance || 0)) return toast.error('Saldo dompet asal tidak mencukupi');
 
     setSaving(true);
     const { error } = await supabase.from('transfers').insert([{
@@ -78,7 +78,7 @@ export default function TransferV35() {
         <header className="mb-8 max-w-2xl">
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400 mb-2">Wallet transfer</p>
           <h1 className="text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em] leading-tight">Pindahkan uang, bukan cashflow</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">Transfer antar dompet tidak dihitung sebagai pemasukan atau pengeluaran. Saldo yang dipakai sudah termasuk hasil rekonsiliasi.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">Transfer antar dompet tidak dihitung sebagai pemasukan atau pengeluaran. Saldo sumber dan tujuan memakai saldo kumulatif saat ini.</p>
         </header>
 
         {loading ? <div className="liquid-nav rounded-[2.4rem] h-96 animate-pulse" /> : wallets.length < 2 ? (
@@ -87,8 +87,8 @@ export default function TransferV35() {
           <div className="grid lg:grid-cols-[1.15fr_.85fr] gap-6 items-start">
             <form onSubmit={submit} className="liquid-nav rounded-[2.4rem] p-6 md:p-8 space-y-6">
               <div className="grid sm:grid-cols-2 gap-4">
-                <label><span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Dari dompet</span><select value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value, to: String(e.target.value) === String(form.to) ? '' : form.to })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none">{wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name} · {rupiah(wallet.month_balance)}</option>)}</select></label>
-                <label><span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Ke dompet</span><select value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none"><option value="" disabled>Pilih tujuan</option>{wallets.filter((wallet) => String(wallet.id) !== String(form.from)).map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name} · {rupiah(wallet.month_balance)}</option>)}</select></label>
+                <label><span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Dari dompet</span><select value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value, to: String(e.target.value) === String(form.to) ? '' : form.to })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none">{wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name} · {rupiah(wallet.current_balance)}</option>)}</select></label>
+                <label><span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Ke dompet</span><select value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none"><option value="" disabled>Pilih tujuan</option>{wallets.filter((wallet) => String(wallet.id) !== String(form.from)).map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name} · {rupiah(wallet.current_balance)}</option>)}</select></label>
               </div>
 
               <div className="text-center py-5">

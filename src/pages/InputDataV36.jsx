@@ -594,7 +594,7 @@ export default function InputDataV36() {
                   <span className="font-medium">{selectedWalletData?.name || 'Belum dipilih'}</span>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <span className="text-slate-400">Saldo bulan ini</span>
+                  <span className="text-slate-400">Saldo saat ini</span>
                   <span className="font-medium">{selectedWalletData ? rupiah(selectedWalletData.current_balance) : '-'}</span>
                 </div>
               </div>
