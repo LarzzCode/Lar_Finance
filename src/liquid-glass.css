@@ -255,10 +255,14 @@ html.dark {
   }
 
   .lf-mobile-nav {
-    left: .5rem !important;
-    right: .5rem !important;
+    left: 50% !important;
+    right: auto !important;
+    width: min(23rem, calc(100vw - 1rem)) !important;
+    max-width: calc(100vw - 1rem) !important;
+    transform: translateX(-50%) !important;
     bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
     padding-bottom: calc(.625rem + env(safe-area-inset-bottom)) !important;
+    box-sizing: border-box;
   }
 
   .lf-mobile-theme {
