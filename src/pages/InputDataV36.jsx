@@ -54,8 +54,6 @@ export default function InputDataV36() {
   const loadData = async () => {
     if (!user) return;
     setDataLoading(true);
-    const { start, end } = currentMonthRange();
-
     const [categoryRes, walletRes, txRes, transferRes, adjustmentRes, ruleRes] = await Promise.all([
       loadAccessibleCategories(supabase, user.id, type),
       supabase.from('wallets').select('*').eq('user_id', user.id).order('created_at'),
@@ -97,7 +95,7 @@ export default function InputDataV36() {
     const txData = txRes.data || [];
     const freq = {};
     txData.forEach((tx) => {
-      if (tx.transaction_date >= start && tx.transaction_date <= end && tx.category_id) {
+      if (tx.category_id) {
         freq[tx.category_id] = (freq[tx.category_id] || 0) + 1;
       }
     });
@@ -541,7 +539,7 @@ export default function InputDataV36() {
                               <DynamicIcon name={category.icon} size={18} />
                             </div>
                             <p className="font-medium text-sm truncate">{category.name}</p>
-                            <p className="text-[10px] text-slate-400 mt-1">Dipakai {frequencies[category.id] || 0}× bulan ini</p>
+                            <p className="text-[10px] text-slate-400 mt-1">Dipakai {frequencies[category.id] || 0}× sepanjang histori</p>
                           </button>
                         );
                       })}
