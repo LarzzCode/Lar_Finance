@@ -79,15 +79,15 @@ export default function NavbarV3() {
         </nav>
       </div>
 
-      <nav className="lf-mobile-nav liquid-nav md:hidden fixed left-3 right-3 bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-50 rounded-[1.8rem] px-2.5 pt-2 pb-2.5">
+      <nav className="lf-mobile-nav liquid-nav md:hidden fixed left-1/2 -translate-x-1/2 w-[calc(100vw-2.75rem)] max-w-[23rem] bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-50 rounded-[2rem] px-2 pt-1.5 pb-2">
         <button onClick={toggleTheme} className="lf-mobile-theme absolute right-1 -top-12 w-10 h-10 rounded-2xl liquid-nav-pill text-slate-600 dark:text-slate-300 flex items-center justify-center" aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}>{isDark ? <Sun size={16} /> : <Moon size={16} />}</button>
         <div className="grid grid-cols-5 items-end">
           {mobileLinks.map(({ path, label, icon: Icon, isFab }) => {
             const active = isPathActive(location.pathname, path);
             if (isFab) {
               return (
-                <Link key={path} to={path} className="flex flex-col items-center justify-end gap-1 relative -top-4">
-                  <motion.span whileTap={{ scale: .93 }} className="liquid-primary w-14 h-14 rounded-[1.3rem] text-white flex items-center justify-center ring-4 ring-white/60 dark:ring-slate-900/70"><Icon size={24} strokeWidth={2} /></motion.span>
+                <Link key={path} to={path} className="flex flex-col items-center justify-end gap-1 relative -top-3">
+                  <motion.span whileTap={{ scale: .93 }} className="liquid-primary w-13 h-13 rounded-[1.25rem] text-white flex items-center justify-center ring-[3px] ring-white/60 dark:ring-slate-900/70"><Icon size={24} strokeWidth={2} /></motion.span>
                   <span className="text-[9px] font-medium text-slate-700 dark:text-slate-300">{label}</span>
                 </Link>
               );
