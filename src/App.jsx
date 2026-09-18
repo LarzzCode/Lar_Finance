@@ -34,6 +34,7 @@ import NavbarV3 from './components/NavbarV3';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import NetworkStatus from './components/NetworkStatus';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import MonthlyBackupReminder from './components/MonthlyBackupReminder';
 
 function LoadingScreen() {
   return (
@@ -69,6 +70,7 @@ function AppLayout({ children }) {
       {user && !authScreen && <NavbarV3 />}
       {children}
       {user && !authScreen && <PwaInstallPrompt />}
+      {user && !authScreen && <MonthlyBackupReminder />}
     </div>
   );
 }

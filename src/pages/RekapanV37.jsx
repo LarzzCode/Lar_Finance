@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { loadAccessibleCategories, rupiah } from '../lib/financeDataV35';
+import { exportFinanceBackup } from '../lib/excelBackupV38';
 
 const monthKey = (dateString) => format(parseISO(dateString), 'yyyy-MM');
 const monthLabel = (dateString) => format(parseISO(`${dateString}-01`), 'MMMM yyyy', { locale: id });
@@ -185,39 +185,17 @@ export default function RekapanV37() {
     load();
   };
 
-  const exportExcel = () => {
-    if (!transactions.length) return toast.error('Belum ada transaksi untuk diekspor');
-
-    const rows = [
-      ['LAPORAN KEUANGAN LAR FINANCE'],
-      ['Periode: SEMUA WAKTU'],
-      [],
-      ['Total Pemasukan', summary.income],
-      ['Total Pengeluaran', summary.expense],
-      ['Net Cashflow', summary.net],
-      [],
-      ['Bulan', 'Tanggal', 'Kategori', 'Dompet', 'Deskripsi', 'Nominal', 'Jenis', 'Tags'],
-      ...transactions.map((tx) => [
-        monthLabel(monthKey(tx.transaction_date)),
-        tx.transaction_date,
-        tx.categories?.name || 'Lainnya',
-        tx.wallets?.name || tx.payment_method || 'Manual',
-        tx.description || '-',
-        Number(tx.amount),
-        tx.categories?.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
-        (tx.tags || []).join(', '),
-      ]),
-    ];
-
-    const sheet = XLSX.utils.aoa_to_sheet(rows);
-    sheet['!cols'] = [
-      { wch: 18 }, { wch: 14 }, { wch: 22 }, { wch: 18 },
-      { wch: 34 }, { wch: 18 }, { wch: 16 }, { wch: 24 },
-    ];
-    const book = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(book, sheet, 'Semua Transaksi');
-    XLSX.writeFile(book, 'LarFinance_Semua_Waktu.xlsx');
-    toast.success('Laporan semua waktu diunduh');
+  const exportExcel = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      const result = await exportFinanceBackup({ supabase, user });
+      toast.success(`Backup selesai · ${result.transactionCount} transaksi · ${result.monthCount} bulan`);
+    } catch (error) {
+      toast.error(error?.message || 'Backup Excel gagal dibuat');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -228,12 +206,12 @@ export default function RekapanV37() {
             <p className="text-[10px] uppercase tracking-[0.16em] font-medium text-slate-400">Reports · Lifetime</p>
             <h1 className="text-[2rem] md:text-[2.7rem] leading-tight font-semibold tracking-[-0.04em] mt-1">Laporan semua waktu</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Tidak ada reset bulanan. Semua transaksi sejak akun mulai dipakai dibaca sebagai satu histori, lalu dikelompokkan per bulan agar tetap mudah ditelusuri.
+              Tidak ada reset bulanan. Semua transaksi sejak akun mulai dipakai dibaca sebagai satu histori. Tombol Backup Excel menyimpan arsip lengkap, sementara tampilan tetap dikelompokkan per bulan agar mudah ditelusuri.
             </p>
           </div>
 
-          <button onClick={exportExcel} className="liquid-nav inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium self-start lg:self-auto">
-            <Download size={15} /> Excel semua waktu
+          <button disabled={saving} onClick={exportExcel} className="liquid-nav inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium self-start lg:self-auto disabled:opacity-50">
+            <Download size={15} /> {saving ? 'Membuat backup…' : 'Backup Excel'}
           </button>
         </header>
 
