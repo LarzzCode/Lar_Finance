@@ -136,7 +136,7 @@ export default function HomeV37() {
               Angka utama sekarang dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.
             </p>
           </div>
-          <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden" aria-label="Buka profil">
+          <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden mt-8 md:mt-0" aria-label="Buka profil">
             <img
               src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=111827&color=fff`}
               alt="Profile"
