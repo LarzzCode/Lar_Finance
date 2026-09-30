@@ -8,13 +8,16 @@ import {
   CircleDollarSign,
   Eye,
   EyeOff,
+  Moon,
   PiggyBank,
   ReceiptText,
+  Sun,
   Target,
   WalletCards,
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { currentMonthRange, rupiah } from '../lib/financeDataV35';
 import ForecastSnapshotV33 from '../components/ForecastSnapshotV33';
 
@@ -25,6 +28,7 @@ const percentChange = (current, previous) => {
 
 export default function HomeV37() {
   const { user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [profile, setProfile] = useState({ full_name: '', avatar_url: '' });
   const [allTx, setAllTx] = useState([]);
   const [monthTx, setMonthTx] = useState([]);
@@ -128,19 +132,29 @@ export default function HomeV37() {
   const display = (value) => hideAmount ? '••••••' : loading ? '…' : rupiah(value);
 
   return (
-    <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
+    <main className="min-h-screen pb-36 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <header className="mb-8">
           <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Dashboard · Lifetime cashflow</p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <h1 className="min-w-0 text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em]">Hi, {firstName}</h1>
-            <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden" aria-label="Buka profil">
-              <img
-                src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=111827&color=fff`}
-                alt="Profile"
-                className="lf-avatar w-11 h-11 aspect-square rounded-full object-cover object-center block shrink-0"
-              />
-            </Link>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={toggleTheme}
+                className="w-11 h-11 rounded-full liquid-nav text-slate-600 dark:text-slate-300 md:hidden flex items-center justify-center border border-white/60 dark:border-white/10 shadow-sm"
+                aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+                title={isDark ? 'Mode terang' : 'Mode gelap'}
+              >
+                {isDark ? <Sun size={17} /> : <Moon size={17} />}
+              </button>
+              <Link to="/profile" className="shrink-0 block rounded-full overflow-hidden" aria-label="Buka profil">
+                <img
+                  src={profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=111827&color=fff`}
+                  alt="Profile"
+                  className="lf-avatar w-11 h-11 aspect-square rounded-full object-cover object-center block shrink-0"
+                />
+              </Link>
+            </div>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
             Angka utama sekarang dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.
@@ -273,14 +287,14 @@ export default function HomeV37() {
               {recent.map((tx) => {
                 const income = tx.categories?.type === 'income';
                 return (
-                  <div key={tx.id} className="py-4 flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{tx.description || tx.categories?.name || 'Transaksi'}</p>
-                      <p className="text-[11px] text-slate-400 mt-1 truncate">
+                  <div key={tx.id} className="py-3.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">{tx.description || tx.categories?.name || 'Transaksi'}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">
                         {tx.categories?.name || 'Lainnya'} · {tx.wallets?.name || 'Manual'} · {tx.transaction_date}
                       </p>
                     </div>
-                    <p className={`lf-money max-w-[46%] text-right text-xs sm:text-sm font-semibold leading-tight break-words ${income ? 'text-emerald-600' : 'text-rose-500'}`}>
+                    <p className={`lf-money shrink-0 text-right text-sm sm:text-base font-semibold whitespace-nowrap pl-2 tabular-nums ${income ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-500'}`}>
                       {income ? '+' : '-'}{rupiah(tx.amount)}
                     </p>
                   </div>

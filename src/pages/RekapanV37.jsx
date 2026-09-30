@@ -4,7 +4,9 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Download,
+  Moon,
   Search,
+  Sun,
   Trash2,
   X,
 } from 'lucide-react';
@@ -13,6 +15,7 @@ import { id } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { loadAccessibleCategories, rupiah } from '../lib/financeDataV35';
 import { exportFinanceBackup } from '../lib/excelBackupV38';
 
@@ -33,13 +36,14 @@ const StatCard = ({ label, value, tone = 'slate', icon: Icon }) => {
         <span className="text-[10px] uppercase tracking-[0.14em] font-medium text-slate-400">{label}</span>
         <span className={`w-9 h-9 rounded-2xl inline-flex items-center justify-center ${toneClass}`}><Icon size={16} /></span>
       </div>
-      <p className="lf-money text-lg sm:text-xl md:text-2xl font-semibold tracking-[-0.03em] break-words">{value}</p>
+      <p className="lf-money text-lg sm:text-xl md:text-2xl font-semibold tracking-[-0.03em] whitespace-nowrap">{value}</p>
     </div>
   );
 };
 
 export default function RekapanV37() {
   const { user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [wallets, setWallets] = useState([]);
@@ -213,7 +217,7 @@ export default function RekapanV37() {
   };
 
   return (
-    <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
+    <main className="min-h-screen pb-36 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-7 md:mb-9">
           <div>
@@ -224,9 +228,19 @@ export default function RekapanV37() {
             </p>
           </div>
 
-          <button disabled={saving} onClick={exportExcel} className="liquid-nav inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium self-start lg:self-auto disabled:opacity-50">
-            <Download size={15} /> {saving ? 'Membuat backup…' : 'Backup Excel'}
-          </button>
+          <div className="flex items-center gap-2 self-start lg:self-auto">
+            <button
+              onClick={toggleTheme}
+              className="liquid-nav w-11 h-11 rounded-2xl md:hidden flex items-center justify-center text-slate-600 dark:text-slate-300"
+              aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}
+              title={isDark ? 'Mode terang' : 'Mode gelap'}
+            >
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+            <button disabled={saving} onClick={exportExcel} className="liquid-nav inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-medium disabled:opacity-50">
+              <Download size={15} /> {saving ? 'Membuat backup…' : 'Backup Excel'}
+            </button>
+          </div>
         </header>
 
         <section className="grid sm:grid-cols-3 gap-3 md:gap-4 mb-5">
@@ -326,18 +340,18 @@ export default function RekapanV37() {
                       <p className="text-sm font-semibold capitalize">{monthLabel(month.key)}</p>
                       <p className="text-[10px] text-slate-400 mt-1">{month.items.length} transaksi</p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-7">
-                      <div>
+                    <div className="grid grid-cols-3 gap-2 sm:gap-6 py-1">
+                      <div className="min-w-0">
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Pemasukan</p>
-                        <p className="text-xs md:text-sm font-semibold text-emerald-600 dark:text-emerald-300 mt-1">+{rupiah(month.income)}</p>
+                        <p className="text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-300 mt-0.5 whitespace-nowrap truncate">+{rupiah(month.income)}</p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Pengeluaran</p>
-                        <p className="text-xs md:text-sm font-semibold text-rose-500 mt-1">-{rupiah(month.expense)}</p>
+                        <p className="text-xs sm:text-sm font-semibold text-rose-500 mt-0.5 whitespace-nowrap truncate">-{rupiah(month.expense)}</p>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Net</p>
-                        <p className={`text-xs md:text-sm font-semibold mt-1 ${month.net < 0 ? 'text-rose-500' : ''}`}>
+                        <p className={`text-xs sm:text-sm font-semibold mt-0.5 whitespace-nowrap truncate ${month.net < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-100'}`}>
                           {month.net >= 0 ? '+' : ''}{rupiah(month.net)}
                         </p>
                       </div>
@@ -348,20 +362,28 @@ export default function RekapanV37() {
                     {month.items.map((tx) => {
                       const income = tx.categories?.type === 'income';
                       return (
-                        <button key={tx.id} onClick={() => openEdit(tx)} className="w-full py-4 px-2 flex items-center justify-between gap-4 text-left hover:bg-white/35 dark:hover:bg-white/[.03] rounded-xl transition-colors">
-                          <div className="flex items-center gap-3 min-w-0">
+                        <button key={tx.id} onClick={() => openEdit(tx)} className="w-full py-3.5 px-2.5 sm:px-3 flex items-center justify-between gap-3 text-left hover:bg-white/35 dark:hover:bg-white/[.03] rounded-2xl transition-colors">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${income ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'bg-rose-500/10 text-rose-500'}`}>
                               {income ? <ArrowUpRight size={17} /> : <ArrowDownRight size={17} />}
                             </div>
-                            <div className="min-w-0">
-                              <p className="font-medium text-sm truncate">{tx.description || tx.categories?.name || 'Transaksi'}</p>
-                              <p className="text-[11px] text-slate-400 mt-1 truncate">
-                                {format(parseISO(tx.transaction_date), 'EEE, d MMM yyyy', { locale: id })} · {tx.categories?.name || 'Lainnya'} · {tx.wallets?.name || tx.payment_method || 'Manual'}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">{tx.description || tx.categories?.name || 'Transaksi'}</p>
+                              <p className="text-[11px] text-slate-400 dark:text-slate-400 mt-0.5 truncate">
+                                {format(parseISO(tx.transaction_date), 'd MMM yyyy', { locale: id })} · {tx.categories?.name || 'Lainnya'} · {tx.wallets?.name || tx.payment_method || 'Manual'}
                               </p>
-                              {(tx.tags || []).length > 0 && <p className="text-[10px] text-indigo-500 mt-1 truncate">{tx.tags.map((tag) => `#${tag}`).join(' ')}</p>}
+                              {(tx.tags || []).length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {tx.tags.map((tag) => (
+                                    <span key={tag} className="text-[10px] font-medium text-indigo-400 dark:text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded-md">
+                                      #{tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          <p className={`lf-money max-w-[44%] text-right font-semibold text-xs sm:text-sm leading-tight break-words ${income ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-500'}`}>
+                          <p className={`lf-money shrink-0 text-right font-semibold text-sm sm:text-base whitespace-nowrap pl-2 tabular-nums ${income ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-500'}`}>
                             {income ? '+' : '-'}{rupiah(tx.amount)}
                           </p>
                         </button>

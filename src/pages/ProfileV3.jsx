@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Camera, LogOut, Mail, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { Camera, LogOut, Mail, Moon, Save, ShieldCheck, Sun, UserRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ProfileV3() {
   const { user } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(null);
@@ -106,6 +108,22 @@ export default function ProfileV3() {
             <div className="space-y-5">
               <label className="block"><span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Nama lengkap</span><input type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Nama Anda" className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none" /></label>
               <label className="block"><span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Email akun</span><div className="w-full mt-2 rounded-2xl px-4 py-4 font-medium text-slate-500 dark:text-slate-400 bg-white/35 dark:bg-white/[.03] border border-white/60 dark:border-white/10 break-all">{user?.email}</div></label>
+              
+              <div className="pt-1">
+                <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400 block mb-2">Tema tampilan</span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-between bg-white/35 dark:bg-white/[.03] border border-white/60 dark:border-white/10 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-white/50 dark:hover:bg-white/[.06] transition-colors"
+                >
+                  <span className="flex items-center gap-2.5">
+                    {isDark ? <Moon size={17} className="text-indigo-400" /> : <Sun size={17} className="text-amber-500" />}
+                    <span>{isDark ? 'Mode Gelap (Dark)' : 'Mode Terang (Light)'}</span>
+                  </span>
+                  <span className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold">Ganti tema</span>
+                </button>
+              </div>
+
               <button onClick={() => updateProfile(fullName, avatarUrl)} disabled={loading || uploading} className="liquid-primary w-full inline-flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-semibold text-sm disabled:opacity-60"><Save size={16} /> {loading ? 'Menyimpan…' : 'Simpan perubahan'}</button>
             </div>
 

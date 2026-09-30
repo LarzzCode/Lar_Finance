@@ -241,6 +241,7 @@ html.dark {
 
 .lf-money {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {
@@ -257,20 +258,25 @@ html.dark {
   .lf-mobile-nav {
     left: 50% !important;
     right: auto !important;
-    width: min(23rem, calc(100vw - 1rem)) !important;
-    max-width: calc(100vw - 1rem) !important;
+    width: min(22rem, calc(100vw - 1.25rem)) !important;
+    max-width: calc(100vw - 1.25rem) !important;
     transform: translateX(-50%) !important;
-    bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
-    padding-bottom: calc(.625rem + env(safe-area-inset-bottom)) !important;
+    bottom: max(0.45rem, env(safe-area-inset-bottom, 0.45rem)) !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+    border-radius: 1.5rem !important;
     box-sizing: border-box;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.14) inset !important;
   }
 
   .lf-mobile-theme {
-    top: -3rem !important;
+    display: none !important;
   }
 
   .lf-pwa-prompt {
-    bottom: calc(7.6rem + env(safe-area-inset-bottom)) !important;
+    bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
     max-height: min(68dvh, 34rem);
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -284,6 +290,9 @@ html.dark {
   }
 
   .lf-money {
-    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: keep-all !important;
   }
 }

@@ -79,23 +79,26 @@ export default function NavbarV3() {
         </nav>
       </div>
 
-      <nav className="lf-mobile-nav liquid-nav md:hidden fixed left-1/2 -translate-x-1/2 w-[calc(100vw-2.75rem)] max-w-[23rem] bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-50 rounded-[2rem] px-2 pt-1.5 pb-2">
-        <button onClick={toggleTheme} className="lf-mobile-theme absolute right-1 -top-12 w-10 h-10 rounded-2xl liquid-nav-pill text-slate-600 dark:text-slate-300 flex items-center justify-center" aria-label={isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'}>{isDark ? <Sun size={16} /> : <Moon size={16} />}</button>
-        <div className="grid grid-cols-5 items-end">
+      <nav className="lf-mobile-nav liquid-nav md:hidden fixed left-1/2 -translate-x-1/2 z-50 rounded-[1.6rem] px-2 py-1">
+        <div className="grid grid-cols-5 items-center">
           {mobileLinks.map(({ path, label, icon: Icon, isFab }) => {
             const active = isPathActive(location.pathname, path);
             if (isFab) {
               return (
-                <Link key={path} to={path} className="flex flex-col items-center justify-end gap-1 relative -top-3">
-                  <motion.span whileTap={{ scale: .93 }} className="liquid-primary w-[3.25rem] h-[3.25rem] rounded-[1.25rem] text-white flex items-center justify-center ring-[3px] ring-white/60 dark:ring-slate-900/70"><Icon size={24} strokeWidth={2} /></motion.span>
-                  <span className="text-[9px] font-medium text-slate-700 dark:text-slate-300">{label}</span>
+                <Link key={path} to={path} className="flex flex-col items-center justify-center relative -top-1">
+                  <motion.span whileTap={{ scale: 0.92 }} className="liquid-primary w-11 h-11 rounded-[1.1rem] text-white flex items-center justify-center ring-[2.5px] ring-white/70 dark:ring-slate-900/80 shadow-md">
+                    <Icon size={21} strokeWidth={2.2} />
+                  </motion.span>
+                  <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 mt-0.5">{label}</span>
                 </Link>
               );
             }
             return (
-              <Link key={path} to={path} className={`flex flex-col items-center justify-end gap-1 py-1.5 min-w-0 ${active ? 'text-slate-950 dark:text-white' : 'text-slate-400'}`}>
-                <span className={`w-9 h-9 rounded-xl flex items-center justify-center ${active ? 'liquid-nav-pill' : ''}`}><Icon size={19} strokeWidth={active ? 2 : 1.8} /></span>
-                <span className="text-[9px] font-medium">{label}</span>
+              <Link key={path} to={path} className={`flex flex-col items-center justify-center py-1 min-w-0 ${active ? 'text-slate-950 dark:text-white' : 'text-slate-400 dark:text-slate-500'}`}>
+                <span className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${active ? 'liquid-nav-pill text-slate-950 dark:text-white' : ''}`}>
+                  <Icon size={18} strokeWidth={active ? 2.1 : 1.8} />
+                </span>
+                <span className={`text-[10px] font-medium tracking-tight mt-0.5 ${active ? 'text-slate-950 dark:text-white font-semibold' : ''}`}>{label}</span>
               </Link>
             );
           })}
