@@ -3,14 +3,17 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Calendar,
   Download,
+  Filter,
+  Layers,
   Moon,
   Search,
   Sun,
   Trash2,
   X,
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
 import { id } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -19,8 +22,34 @@ import { useTheme } from '../context/ThemeContext';
 import { loadAccessibleCategories, rupiah } from '../lib/financeDataV35';
 import { exportFinanceBackup } from '../lib/excelBackupV38';
 
-const monthKey = (dateString) => format(parseISO(dateString), 'yyyy-MM');
-const monthLabel = (dateString) => format(parseISO(`${dateString}-01`), 'MMMM yyyy', { locale: id });
+const getGroupMeta = (dateString, timeframe) => {
+  const d = parseISO(dateString);
+  if (timeframe === 'day') {
+    const key = format(d, 'yyyy-MM-dd');
+    const label = format(d, 'EEEE, d MMMM yyyy', { locale: id });
+    return { key, label };
+  }
+  if (timeframe === 'week') {
+    const start = startOfWeek(d, { weekStartsOn: 1 });
+    const end = endOfWeek(d, { weekStartsOn: 1 });
+    const key = format(start, 'yyyy-MM-dd');
+    const sameYear = format(start, 'yyyy') === format(end, 'yyyy');
+    const sameMonth = format(start, 'MM yyyy') === format(end, 'MM yyyy');
+    let label;
+    if (sameMonth) {
+      label = `${format(start, 'd', { locale: id })} – ${format(end, 'd MMMM yyyy', { locale: id })}`;
+    } else if (sameYear) {
+      label = `${format(start, 'd MMM', { locale: id })} – ${format(end, 'd MMM yyyy', { locale: id })}`;
+    } else {
+      label = `${format(start, 'd MMM yyyy', { locale: id })} – ${format(end, 'd MMM yyyy', { locale: id })}`;
+    }
+    return { key, label };
+  }
+  // timeframe === 'month'
+  const key = format(d, 'yyyy-MM');
+  const label = format(parseISO(`${key}-01`), 'MMMM yyyy', { locale: id });
+  return { key, label };
+};
 
 const StatCard = ({ label, value, tone = 'slate', icon: Icon }) => {
   const toneClass = {
@@ -48,6 +77,8 @@ export default function RekapanV37() {
   const [categories, setCategories] = useState([]);
   const [wallets, setWallets] = useState([]);
   const [query, setQuery] = useState('');
+  const [timeframe, setTimeframe] = useState('month'); // 'month' | 'week' | 'day'
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'expense' | 'income'
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -78,61 +109,102 @@ export default function RekapanV37() {
 
   useEffect(() => { load(); }, [user]);
 
-  const summary = useMemo(() => {
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return transactions.filter((tx) => {
+      const isIncome = tx.categories?.type === 'income';
+      if (typeFilter === 'income' && !isIncome) return false;
+      if (typeFilter === 'expense' && isIncome) return false;
+
+      if (!term) return true;
+      return (
+        (tx.description || '').toLowerCase().includes(term) ||
+        (tx.categories?.name || '').toLowerCase().includes(term) ||
+        (tx.wallets?.name || '').toLowerCase().includes(term) ||
+        (tx.tags || []).some((tag) => String(tag).toLowerCase().includes(term))
+      );
+    });
+  }, [transactions, query, typeFilter]);
+
+  const filteredSummary = useMemo(() => {
     let income = 0;
     let expense = 0;
-    const expenseByCategory = {};
 
-    transactions.forEach((tx) => {
+    filtered.forEach((tx) => {
       const amount = Number(tx.amount || 0);
       if (tx.categories?.type === 'income') income += amount;
-      else {
-        expense += amount;
-        const name = tx.categories?.name || 'Lainnya';
-        expenseByCategory[name] = (expenseByCategory[name] || 0) + amount;
-      }
+      else expense += amount;
     });
 
     return {
       income,
       expense,
       net: income - expense,
-      categories: Object.entries(expenseByCategory)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value),
+      count: filtered.length,
     };
-  }, [transactions]);
+  }, [filtered]);
 
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) return transactions;
+  const categoryRankings = useMemo(() => {
+    const isIncomeTarget = typeFilter === 'income';
+    const map = {};
+    let total = 0;
 
-    return transactions.filter((tx) =>
-      (tx.description || '').toLowerCase().includes(term)
-      || (tx.categories?.name || '').toLowerCase().includes(term)
-      || (tx.wallets?.name || '').toLowerCase().includes(term)
-      || (tx.tags || []).some((tag) => String(tag).toLowerCase().includes(term))
-    );
-  }, [transactions, query]);
+    filtered.forEach((tx) => {
+      const isIncome = tx.categories?.type === 'income';
+      if (isIncomeTarget ? isIncome : !isIncome) {
+        const amount = Number(tx.amount || 0);
+        const name = tx.categories?.name || 'Lainnya';
+        map[name] = (map[name] || 0) + amount;
+        total += amount;
+      }
+    });
 
-  const monthlyGroups = useMemo(() => {
+    const items = Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      title: isIncomeTarget ? 'Kategori pemasukan' : 'Kategori pengeluaran',
+      total,
+      items,
+    };
+  }, [filtered, typeFilter]);
+
+  const groupedTransactions = useMemo(() => {
     const map = {};
 
     filtered.forEach((tx) => {
-      const key = monthKey(tx.transaction_date);
-      if (!map[key]) map[key] = { key, income: 0, expense: 0, items: [] };
+      const { key, label } = getGroupMeta(tx.transaction_date, timeframe);
+      if (!map[key]) {
+        map[key] = { key, label, income: 0, expense: 0, items: [] };
+      }
       const amount = Number(tx.amount || 0);
-      if (tx.categories?.type === 'income') map[key].income += amount;
-      else map[key].expense += amount;
+      if (tx.categories?.type === 'income') {
+        map[key].income += amount;
+      } else {
+        map[key].expense += amount;
+      }
       map[key].items.push(tx);
     });
 
     return Object.values(map)
-      .map((month) => ({ ...month, net: month.income - month.expense }))
+      .map((group) => ({ ...group, net: group.income - group.expense }))
       .sort((a, b) => b.key.localeCompare(a.key));
-  }, [filtered]);
+  }, [filtered, timeframe]);
 
-  const maxMonth = Math.max(1, ...monthlyGroups.flatMap((month) => [month.income, month.expense]));
+  const maxGroup = useMemo(() => {
+    const values = groupedTransactions.flatMap((group) => {
+      if (typeFilter === 'income') return [group.income];
+      if (typeFilter === 'expense') return [group.expense];
+      return [group.income, group.expense];
+    });
+    return Math.max(1, ...values);
+  }, [groupedTransactions, typeFilter]);
+
+  const rhythmGroups = useMemo(() => {
+    const limit = timeframe === 'day' ? 14 : timeframe === 'week' ? 10 : 12;
+    return [...groupedTransactions].slice(0, limit).reverse();
+  }, [groupedTransactions, timeframe]);
 
   const editCategories = useMemo(() => {
     const transactionType = selected?.categories?.type;
@@ -223,8 +295,8 @@ export default function RekapanV37() {
           <div>
             <p className="text-[10px] uppercase tracking-[0.16em] font-medium text-slate-400">Reports · Lifetime</p>
             <h1 className="text-[2rem] md:text-[2.7rem] leading-tight font-semibold tracking-[-0.04em] mt-1">Laporan semua waktu</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Tidak ada reset bulanan. Semua transaksi sejak akun mulai dipakai dibaca sebagai satu histori. Tombol Backup Excel menyimpan arsip lengkap, sementara tampilan tetap dikelompokkan per bulan agar mudah ditelusuri.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-2xl">
+              Histori finansial kumulatif kamu. Gunakan filter periode dan jenis transaksi untuk meninjau arus kas secara bulanan, mingguan, atau harian.
             </p>
           </div>
 
@@ -243,126 +315,269 @@ export default function RekapanV37() {
           </div>
         </header>
 
+        {/* Stat Cards based on active filter */}
         <section className="grid sm:grid-cols-3 gap-3 md:gap-4 mb-5">
-          <StatCard label="Total pemasukan" value={loading ? '…' : rupiah(summary.income)} tone="emerald" icon={ArrowUpRight} />
-          <StatCard label="Total pengeluaran" value={loading ? '…' : rupiah(summary.expense)} tone="rose" icon={ArrowDownRight} />
-          <StatCard label="Net keseluruhan" value={loading ? '…' : rupiah(summary.net)} tone={summary.net < 0 ? 'rose' : 'indigo'} icon={summary.net < 0 ? ArrowDownRight : ArrowUpRight} />
+          {typeFilter === 'expense' ? (
+            <>
+              <StatCard label="Total pengeluaran" value={loading ? '…' : rupiah(filteredSummary.expense)} tone="rose" icon={ArrowDownRight} />
+              <StatCard label="Transaksi pengeluaran" value={loading ? '…' : `${filteredSummary.count} transaksi`} tone="slate" icon={Layers} />
+              <StatCard
+                label="Rata-rata transaksi"
+                value={loading ? '…' : rupiah(filteredSummary.count ? Math.round(filteredSummary.expense / filteredSummary.count) : 0)}
+                tone="indigo"
+                icon={ArrowDownRight}
+              />
+            </>
+          ) : typeFilter === 'income' ? (
+            <>
+              <StatCard label="Total pemasukan" value={loading ? '…' : rupiah(filteredSummary.income)} tone="emerald" icon={ArrowUpRight} />
+              <StatCard label="Transaksi pemasukan" value={loading ? '…' : `${filteredSummary.count} transaksi`} tone="slate" icon={Layers} />
+              <StatCard
+                label="Rata-rata transaksi"
+                value={loading ? '…' : rupiah(filteredSummary.count ? Math.round(filteredSummary.income / filteredSummary.count) : 0)}
+                tone="indigo"
+                icon={ArrowUpRight}
+              />
+            </>
+          ) : (
+            <>
+              <StatCard label="Total pemasukan" value={loading ? '…' : rupiah(filteredSummary.income)} tone="emerald" icon={ArrowUpRight} />
+              <StatCard label="Total pengeluaran" value={loading ? '…' : rupiah(filteredSummary.expense)} tone="rose" icon={ArrowDownRight} />
+              <StatCard
+                label="Net keseluruhan"
+                value={loading ? '…' : rupiah(filteredSummary.net)}
+                tone={filteredSummary.net < 0 ? 'rose' : 'indigo'}
+                icon={filteredSummary.net < 0 ? ArrowDownRight : ArrowUpRight}
+              />
+            </>
+          )}
+        </section>
+
+        {/* Filter Controls: Periode & Jenis */}
+        <section className="liquid-nav rounded-[2rem] p-4 md:p-5 mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Periode filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Calendar size={14} />
+              <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Periode</span>
+            </div>
+            <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
+              {[
+                { key: 'month', label: 'Per Bulan' },
+                { key: 'week', label: 'Per Minggu' },
+                { key: 'day', label: 'Per Hari' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setTimeframe(tab.key)}
+                  className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
+                    timeframe === tab.key
+                      ? 'liquid-primary text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Jenis filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <Filter size={14} />
+              <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Jenis</span>
+            </div>
+            <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
+              {[
+                { key: 'all', label: 'Semua' },
+                { key: 'expense', label: 'Pengeluaran' },
+                { key: 'income', label: 'Pemasukan' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setTypeFilter(tab.key)}
+                  className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
+                    typeFilter === tab.key
+                      ? 'liquid-primary text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="grid lg:grid-cols-[.76fr_1.24fr] gap-5 mb-5">
+          {/* Category breakdown */}
           <div className="liquid-nav rounded-[2.2rem] p-5 md:p-6">
-            <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">Kategori terbesar</p>
-            <h2 className="text-lg md:text-xl font-semibold mt-1 mb-5">Sepanjang histori</h2>
+            <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">{categoryRankings.title}</p>
+            <h2 className="text-lg md:text-xl font-semibold mt-1 mb-5">Terbesar di histori</h2>
 
-            {summary.categories.length ? (
+            {categoryRankings.items.length ? (
               <div className="space-y-4">
-                {summary.categories.slice(0, 7).map((item, index) => {
-                  const percent = summary.expense > 0 ? (item.value / summary.expense) * 100 : 0;
+                {categoryRankings.items.slice(0, 7).map((item, index) => {
+                  const percent = categoryRankings.total > 0 ? (item.value / categoryRankings.total) * 100 : 0;
                   return (
                     <div key={item.name}>
                       <div className="flex items-center justify-between gap-3 text-sm">
                         <span className="font-medium text-slate-600 dark:text-slate-300 truncate">{index + 1}. {item.name}</span>
-                        <span className="font-semibold">{rupiah(item.value)}</span>
+                        <span className="font-semibold lf-money">{rupiah(item.value)}</span>
                       </div>
                       <div className="mt-2 h-1.5 rounded-full bg-slate-200/60 dark:bg-white/10 overflow-hidden">
-                        <div className="h-full bg-slate-800 dark:bg-slate-200 rounded-full" style={{ width: `${Math.min(percent, 100)}%` }} />
+                        <div
+                          className={`h-full rounded-full ${typeFilter === 'income' ? 'bg-emerald-500' : 'bg-slate-800 dark:bg-slate-200'}`}
+                          style={{ width: `${Math.min(percent, 100)}%` }}
+                        />
                       </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="py-14 text-center text-sm text-slate-400">Belum ada pengeluaran.</div>
+              <div className="py-14 text-center text-sm text-slate-400">
+                {typeFilter === 'income' ? 'Belum ada data pemasukan.' : 'Belum ada data pengeluaran.'}
+              </div>
             )}
           </div>
 
+          {/* Cashflow Rhythm */}
           <div className="liquid-nav rounded-[2.2rem] p-5 md:p-6">
-            <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">Monthly rhythm</p>
-            <h2 className="text-lg md:text-xl font-semibold mt-1">Arus kas per bulan</h2>
-            <p className="text-xs text-slate-400 mt-1 mb-6">Bulan hanya dipakai sebagai pengelompokan visual—total utama tetap kumulatif.</p>
+            <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">
+              {timeframe === 'day' ? 'Daily rhythm' : timeframe === 'week' ? 'Weekly rhythm' : 'Monthly rhythm'}
+            </p>
+            <h2 className="text-lg md:text-xl font-semibold mt-1">
+              Arus kas {timeframe === 'day' ? 'per hari' : timeframe === 'week' ? 'per minggu' : 'per bulan'}
+            </h2>
+            <p className="text-xs text-slate-400 mt-1 mb-6">
+              Visualisasi ritme arus kas {timeframe === 'day' ? 'harian' : timeframe === 'week' ? 'mingguan' : 'bulanan'}—total utama tetap kumulatif.
+            </p>
 
             <div className="space-y-5">
-              {[...monthlyGroups].reverse().map((month) => (
-                <div key={month.key}>
+              {rhythmGroups.map((group) => (
+                <div key={group.key}>
                   <div className="flex items-center justify-between gap-3 mb-2">
-                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{monthLabel(month.key)}</span>
-                    <span className={`text-xs font-medium ${month.net < 0 ? 'text-rose-500' : 'text-slate-500 dark:text-slate-300'}`}>
-                      Net {month.net >= 0 ? '+' : ''}{rupiah(month.net)}
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate capitalize">{group.label}</span>
+                    <span className={`text-xs font-medium lf-money shrink-0 ${group.net < 0 ? 'text-rose-500' : 'text-slate-500 dark:text-slate-300'}`}>
+                      Net {group.net >= 0 ? '+' : ''}{rupiah(group.net)}
                     </span>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(76px,auto)] sm:grid-cols-[82px_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
-                      <span className="text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Masuk</span>
-                      <div className="h-2 rounded-full bg-emerald-500/10 overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${Math.max(month.income ? 4 : 0, (month.income / maxMonth) * 100)}%` }} />
+                    {(typeFilter === 'all' || typeFilter === 'income') && (
+                      <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(76px,auto)] sm:grid-cols-[82px_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+                        <span className="text-[10px] uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Masuk</span>
+                        <div className="h-2 rounded-full bg-emerald-500/10 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500"
+                            style={{ width: `${Math.max(group.income ? 4 : 0, (group.income / maxGroup) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="lf-money text-[10px] sm:text-xs font-medium text-right whitespace-nowrap">{rupiah(group.income)}</span>
                       </div>
-                      <span className="lf-money text-[10px] sm:text-xs font-medium text-right whitespace-nowrap">{rupiah(month.income)}</span>
-                    </div>
-                    <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(76px,auto)] sm:grid-cols-[82px_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
-                      <span className="text-[10px] uppercase tracking-wide text-rose-500">Keluar</span>
-                      <div className="h-2 rounded-full bg-rose-500/10 overflow-hidden">
-                        <div className="h-full rounded-full bg-rose-500" style={{ width: `${Math.max(month.expense ? 4 : 0, (month.expense / maxMonth) * 100)}%` }} />
+                    )}
+                    {(typeFilter === 'all' || typeFilter === 'expense') && (
+                      <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(76px,auto)] sm:grid-cols-[82px_minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+                        <span className="text-[10px] uppercase tracking-wide text-rose-500">Keluar</span>
+                        <div className="h-2 rounded-full bg-rose-500/10 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-rose-500"
+                            style={{ width: `${Math.max(group.expense ? 4 : 0, (group.expense / maxGroup) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="lf-money text-[10px] sm:text-xs font-medium text-right whitespace-nowrap">{rupiah(group.expense)}</span>
                       </div>
-                      <span className="lf-money text-[10px] sm:text-xs font-medium text-right whitespace-nowrap">{rupiah(month.expense)}</span>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
 
-              {!monthlyGroups.length && <div className="py-16 text-center text-sm text-slate-400">Belum ada data.</div>}
+              {!rhythmGroups.length && <div className="py-16 text-center text-sm text-slate-400">Belum ada data.</div>}
             </div>
           </div>
         </section>
 
+        {/* Grouped Transactions List */}
         <section className="liquid-nav rounded-[2.3rem] p-5 md:p-7">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">Transactions</p>
-              <h2 className="text-xl md:text-2xl font-semibold mt-1">Histori per bulan</h2>
+              <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">
+                {typeFilter === 'expense' ? 'Histori Pengeluaran' : typeFilter === 'income' ? 'Histori Pemasukan' : 'Transactions'}
+              </p>
+              <h2 className="text-xl md:text-2xl font-semibold mt-1">
+                Histori {timeframe === 'day' ? 'per hari' : timeframe === 'week' ? 'per minggu' : 'per bulan'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                {filtered.length} transaksi{query ? ` untuk "${query}"` : ''} · {groupedTransactions.length} periode
+              </p>
             </div>
             <label className="relative md:w-80">
               <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari transaksi / tag..." className="w-full rounded-2xl pl-10 pr-4 py-3 text-sm font-medium outline-none" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Cari transaksi / tag..."
+                className="w-full rounded-2xl pl-10 pr-10 py-3 text-sm font-medium outline-none"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label="Bersihkan pencarian"
+                >
+                  <X size={15} />
+                </button>
+              )}
             </label>
           </div>
 
           {loading ? (
             <div className="space-y-3">{[1,2,3].map((item) => <div key={item} className="h-20 rounded-2xl bg-white/35 dark:bg-white/[.04] animate-pulse" />)}</div>
-          ) : !monthlyGroups.length ? (
-            <div className="py-14 text-center text-sm text-slate-400">Belum ada transaksi.</div>
+          ) : !groupedTransactions.length ? (
+            <div className="py-14 text-center text-sm text-slate-400">
+              {query || typeFilter !== 'all' ? 'Tidak ada transaksi yang cocok dengan filter.' : 'Belum ada transaksi.'}
+            </div>
           ) : (
             <div className="space-y-5">
-              {monthlyGroups.map((month) => (
-                <article key={month.key} className="rounded-[1.9rem] border border-white/65 dark:border-white/10 bg-white/32 dark:bg-white/[.025] overflow-hidden">
+              {groupedTransactions.map((group) => (
+                <article key={group.key} className="rounded-[1.9rem] border border-white/65 dark:border-white/10 bg-white/32 dark:bg-white/[.025] overflow-hidden">
                   <div className="px-4 md:px-5 py-4 md:py-5 bg-white/34 dark:bg-white/[.03] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold capitalize">{monthLabel(month.key)}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">{month.items.length} transaksi</p>
+                      <p className="text-sm font-semibold capitalize">{group.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{group.items.length} transaksi</p>
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:gap-6 py-1">
                       <div className="min-w-0">
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Pemasukan</p>
-                        <p className="text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-300 mt-0.5 whitespace-nowrap truncate">+{rupiah(month.income)}</p>
+                        <p className="text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-300 mt-0.5 whitespace-nowrap truncate">+{rupiah(group.income)}</p>
                       </div>
                       <div className="min-w-0">
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Pengeluaran</p>
-                        <p className="text-xs sm:text-sm font-semibold text-rose-500 mt-0.5 whitespace-nowrap truncate">-{rupiah(month.expense)}</p>
+                        <p className="text-xs sm:text-sm font-semibold text-rose-500 mt-0.5 whitespace-nowrap truncate">-{rupiah(group.expense)}</p>
                       </div>
                       <div className="min-w-0">
                         <p className="text-[9px] uppercase tracking-wide text-slate-400">Net</p>
-                        <p className={`text-xs sm:text-sm font-semibold mt-0.5 whitespace-nowrap truncate ${month.net < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-100'}`}>
-                          {month.net >= 0 ? '+' : ''}{rupiah(month.net)}
+                        <p className={`text-xs sm:text-sm font-semibold mt-0.5 whitespace-nowrap truncate ${group.net < 0 ? 'text-rose-500' : 'text-slate-800 dark:text-slate-100'}`}>
+                          {group.net >= 0 ? '+' : ''}{rupiah(group.net)}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="divide-y divide-white/50 dark:divide-white/10 px-2 md:px-3">
-                    {month.items.map((tx) => {
+                    {group.items.map((tx) => {
                       const income = tx.categories?.type === 'income';
                       return (
-                        <button key={tx.id} onClick={() => openEdit(tx)} className="w-full py-3.5 px-2.5 sm:px-3 flex items-center justify-between gap-3 text-left hover:bg-white/35 dark:hover:bg-white/[.03] rounded-2xl transition-colors">
+                        <button
+                          key={tx.id}
+                          onClick={() => openEdit(tx)}
+                          className="w-full py-3.5 px-2.5 sm:px-3 flex items-center justify-between gap-3 text-left hover:bg-white/35 dark:hover:bg-white/[.03] rounded-2xl transition-colors"
+                        >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${income ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' : 'bg-rose-500/10 text-rose-500'}`}>
                               {income ? <ArrowUpRight size={17} /> : <ArrowDownRight size={17} />}
