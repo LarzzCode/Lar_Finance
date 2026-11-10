@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { format, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
+import { addMonths, endOfWeek, format, isSameMonth, startOfWeek, subMonths, subWeeks } from 'date-fns';
+import { id } from 'date-fns/locale';
 import {
   ArrowDownRight,
   ArrowRightLeft,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   Eye,
   EyeOff,
@@ -38,6 +41,8 @@ export default function HomeV37() {
   const [walletCount, setWalletCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [hideAmount, setHideAmount] = useState(false);
+  const [summaryMode, setSummaryMode] = useState('lifetime'); // 'lifetime' | 'monthly'
+  const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
 
   useEffect(() => {
     if (!user) return;
@@ -98,6 +103,27 @@ export default function HomeV37() {
     return acc;
   }, { income: 0, expense: 0 }), [allTx]);
 
+  const monthly = useMemo(() => {
+    const monthKey = format(selectedMonthDate, 'yyyy-MM');
+    let income = 0;
+    let expense = 0;
+
+    allTx.forEach((tx) => {
+      if (tx.transaction_date && tx.transaction_date.startsWith(monthKey)) {
+        const amount = Number(tx.amount || 0);
+        if (tx.categories?.type === 'income') income += amount;
+        else expense += amount;
+      }
+    });
+
+    return { income, expense, net: income - expense };
+  }, [allTx, selectedMonthDate]);
+
+  const isMonthly = summaryMode === 'monthly';
+  const currentSummary = isMonthly ? monthly : lifetime;
+  const currentNet = currentSummary.income - currentSummary.expense;
+  const monthName = format(selectedMonthDate, 'MMMM yyyy', { locale: id });
+
   const week = useMemo(() => {
     const now = new Date();
     const thisStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -118,24 +144,28 @@ export default function HomeV37() {
   }, [weeklyTx]);
 
   const budgetState = useMemo(() => budgets.map((budget) => {
-    const spent = monthTx
+    const targetTx = isMonthly
+      ? allTx.filter((tx) => tx.transaction_date && tx.transaction_date.startsWith(format(selectedMonthDate, 'yyyy-MM')))
+      : monthTx;
+    const spent = targetTx
       .filter((tx) => tx.categories?.type === 'expense' && String(tx.category_id) === String(budget.category_id))
       .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
     const amount = Number(budget.amount || 0);
     return { ...budget, spent, percent: amount > 0 ? (spent / amount) * 100 : 0 };
-  }).sort((a, b) => b.percent - a.percent), [budgets, monthTx]);
+  }).sort((a, b) => b.percent - a.percent), [budgets, monthTx, allTx, isMonthly, selectedMonthDate]);
 
   const alertBudget = budgetState.find((item) => item.percent >= 70);
   const expenseDelta = percentChange(week.current.expense, week.previous.expense);
-  const net = lifetime.income - lifetime.expense;
   const firstName = profile.full_name?.trim().split(' ')[0] || 'Boss';
   const display = (value) => hideAmount ? '••••••' : loading ? '…' : rupiah(value);
 
   return (
     <main className="min-h-screen pb-36 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <header className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Dashboard · Lifetime cashflow</p>
+        <header className="mb-6">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
+            {isMonthly ? `Dashboard · Arus kas ${monthName}` : 'Dashboard · Lifetime cashflow'}
+          </p>
           <div className="mt-1 flex items-center justify-between gap-4">
             <h1 className="min-w-0 text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em]">Hi, {firstName}</h1>
             <div className="flex items-center gap-2 shrink-0">
@@ -157,18 +187,90 @@ export default function HomeV37() {
             </div>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Angka utama sekarang dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.
+            {isMonthly
+              ? `Menampilkan ringkasan keuangan untuk bulan ${monthName}.`
+              : 'Angka utama dihitung kumulatif sejak kamu mulai memakai Lar Finance, bukan di-reset tiap bulan.'}
           </p>
         </header>
 
+        {/* Mode Switcher (Semua Waktu vs Per Bulan) & Month Navigator */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div className="grid grid-cols-2 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
+            <button
+              type="button"
+              onClick={() => setSummaryMode('lifetime')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all text-center ${
+                summaryMode === 'lifetime'
+                  ? 'liquid-primary text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              Semua waktu
+            </button>
+            <button
+              type="button"
+              onClick={() => setSummaryMode('monthly')}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all text-center ${
+                summaryMode === 'monthly'
+                  ? 'liquid-primary text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              Per bulan
+            </button>
+          </div>
+
+          {isMonthly && (
+            <div className="flex items-center gap-2">
+              <div className="liquid-nav-pill rounded-2xl px-2 py-1 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonthDate((prev) => subMonths(prev, 1))}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition"
+                  aria-label="Bulan sebelumnya"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs font-semibold capitalize px-2 min-w-[110px] text-center select-none">
+                  {monthName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonthDate((prev) => addMonths(prev, 1))}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition"
+                  aria-label="Bulan berikutnya"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+              {!isSameMonth(selectedMonthDate, new Date()) && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedMonthDate(new Date())}
+                  className="liquid-nav px-3 py-1.5 rounded-xl text-[11px] font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
+                >
+                  Bulan ini
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Hero Financial Summary Section */}
         <section className="relative overflow-hidden rounded-[2.5rem] border border-white/70 dark:border-white/10 bg-white/52 dark:bg-slate-900/48 backdrop-blur-[30px] p-6 md:p-9 mb-5">
           <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-rose-300/20 blur-3xl" />
           <div className="relative grid lg:grid-cols-[1.2fr_.8fr] gap-7 lg:items-end">
             <div>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Total pengeluaran</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Akumulasi seluruh transaksi sejak mulai digunakan.</p>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">
+                    {isMonthly ? `Pengeluaran ${monthName}` : 'Total pengeluaran'}
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {isMonthly
+                      ? `Akumulasi transaksi pengeluaran bulan ${monthName}.`
+                      : 'Akumulasi seluruh transaksi sejak mulai digunakan.'}
+                  </p>
                 </div>
                 <button
                   onClick={() => setHideAmount((value) => !value)}
@@ -179,17 +281,27 @@ export default function HomeV37() {
                   {hideAmount ? <EyeOff size={18} strokeWidth={1.9} /> : <Eye size={18} strokeWidth={1.9} />}
                 </button>
               </div>
-              <p className="lf-money text-[clamp(1.85rem,9.2vw,2.8rem)] md:text-[4.5rem] leading-none font-semibold tracking-[-0.055em] mt-5 whitespace-nowrap">{display(lifetime.expense)}</p>
+              <p className="lf-money text-[clamp(1.85rem,9.2vw,2.8rem)] md:text-[4.5rem] leading-none font-semibold tracking-[-0.055em] mt-5 whitespace-nowrap">
+                {display(currentSummary.expense)}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="liquid-nav rounded-[1.6rem] p-4 min-w-0 overflow-hidden">
-                <p className="text-[10px] uppercase tracking-wide text-emerald-600">Total pemasukan</p>
-                <p className="lf-money text-[clamp(.78rem,3.4vw,1.125rem)] md:text-lg font-semibold mt-2 break-words">{display(lifetime.income)}</p>
+                <p className="text-[10px] uppercase tracking-wide text-emerald-600">
+                  {isMonthly ? 'Pemasukan bulan ini' : 'Total pemasukan'}
+                </p>
+                <p className="lf-money text-[clamp(.78rem,3.4vw,1.125rem)] md:text-lg font-semibold mt-2 break-words">
+                  {display(currentSummary.income)}
+                </p>
               </div>
               <div className="liquid-nav rounded-[1.6rem] p-4 min-w-0 overflow-hidden">
-                <p className="text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-300">Net keseluruhan</p>
-                <p className={`lf-money text-[clamp(.78rem,3.4vw,1.125rem)] md:text-lg font-semibold mt-2 break-words ${net < 0 ? 'text-rose-500' : ''}`}>{display(net)}</p>
+                <p className="text-[10px] uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+                  {isMonthly ? 'Net bulan ini' : 'Net keseluruhan'}
+                </p>
+                <p className={`lf-money text-[clamp(.78rem,3.4vw,1.125rem)] md:text-lg font-semibold mt-2 break-words ${currentNet < 0 ? 'text-rose-500' : ''}`}>
+                  {display(currentNet)}
+                </p>
               </div>
             </div>
           </div>
@@ -226,7 +338,9 @@ export default function HomeV37() {
           <div className="liquid-nav rounded-[2.2rem] p-5 md:p-6">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">Budget bulan berjalan</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-slate-400">
+                  {isMonthly ? `Budget ${monthName}` : 'Budget bulan berjalan'}
+                </p>
                 <h2 className="text-xl font-semibold mt-1">Batas pengeluaran</h2>
               </div>
               <Target size={20} className="text-indigo-500" />
@@ -251,7 +365,9 @@ export default function HomeV37() {
             ) : (
               <div className="py-7 text-center">
                 <PiggyBank size={28} className="mx-auto text-slate-300 mb-3" />
-                <p className="text-sm text-slate-500">Belum ada budget bulan ini yang melewati 70%.</p>
+                <p className="text-sm text-slate-500">
+                  {isMonthly ? `Belum ada budget di bulan ${monthName} yang melewati 70%.` : 'Belum ada budget bulan ini yang melewati 70%.'}
+                </p>
               </div>
             )}
           </div>
