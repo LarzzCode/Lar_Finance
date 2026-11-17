@@ -4,18 +4,20 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Calendar,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   Download,
   Filter,
   Layers,
   Moon,
+  RotateCcw,
   Search,
   Sun,
   Trash2,
   X,
 } from 'lucide-react';
-import { endOfWeek, format, parseISO, startOfWeek } from 'date-fns';
+import { endOfMonth, endOfWeek, format, parseISO, startOfMonth, startOfWeek, subDays } from 'date-fns';
 import { id } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
@@ -81,12 +83,43 @@ export default function RekapanV37() {
   const [query, setQuery] = useState('');
   const [timeframe, setTimeframe] = useState('month'); // 'month' | 'week' | 'day'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'expense' | 'income'
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [activePreset, setActivePreset] = useState('all'); // 'all' | '7d' | '30d' | 'month' | 'payday' | 'custom'
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const applyDatePreset = (preset) => {
+    const now = new Date();
+    setActivePreset(preset);
+    if (preset === 'all') {
+      setDateFrom('');
+      setDateTo('');
+    } else if (preset === '7d') {
+      setDateFrom(format(subDays(now, 6), 'yyyy-MM-dd'));
+      setDateTo(format(now, 'yyyy-MM-dd'));
+    } else if (preset === '30d') {
+      setDateFrom(format(subDays(now, 29), 'yyyy-MM-dd'));
+      setDateTo(format(now, 'yyyy-MM-dd'));
+    } else if (preset === 'month') {
+      setDateFrom(format(startOfMonth(now), 'yyyy-MM-dd'));
+      setDateTo(format(endOfMonth(now), 'yyyy-MM-dd'));
+    } else if (preset === 'payday') {
+      const day = now.getDate();
+      const start = day >= 25
+        ? new Date(now.getFullYear(), now.getMonth(), 25)
+        : new Date(now.getFullYear(), now.getMonth() - 1, 25);
+      const end = day >= 25
+        ? new Date(now.getFullYear(), now.getMonth() + 1, 24)
+        : new Date(now.getFullYear(), now.getMonth(), 24);
+      setDateFrom(format(start, 'yyyy-MM-dd'));
+      setDateTo(format(end, 'yyyy-MM-dd'));
+    }
+  };
 
   const load = async () => {
     if (!user) return;
@@ -116,7 +149,14 @@ export default function RekapanV37() {
   // Reset to first page when filtering or searching
   useEffect(() => {
     setPage(1);
-  }, [query, timeframe, typeFilter]);
+  }, [query, timeframe, typeFilter, dateFrom, dateTo]);
+
+  const effectiveRange = useMemo(() => {
+    if (dateFrom && dateTo && dateFrom > dateTo) {
+      return { from: dateTo, to: dateFrom };
+    }
+    return { from: dateFrom, to: dateTo };
+  }, [dateFrom, dateTo]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -124,6 +164,9 @@ export default function RekapanV37() {
       const isIncome = tx.categories?.type === 'income';
       if (typeFilter === 'income' && !isIncome) return false;
       if (typeFilter === 'expense' && isIncome) return false;
+
+      if (effectiveRange.from && tx.transaction_date < effectiveRange.from) return false;
+      if (effectiveRange.to && tx.transaction_date > effectiveRange.to) return false;
 
       if (!term) return true;
       return (
@@ -133,7 +176,7 @@ export default function RekapanV37() {
         (tx.tags || []).some((tag) => String(tag).toLowerCase().includes(term))
       );
     });
-  }, [transactions, query, typeFilter]);
+  }, [transactions, query, typeFilter, effectiveRange]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
@@ -411,61 +454,134 @@ export default function RekapanV37() {
           )}
         </section>
 
-        {/* Filter Controls: Periode & Jenis */}
-        <section className="liquid-nav rounded-[2rem] p-4 md:p-5 mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          {/* Periode filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Calendar size={14} />
-              <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Periode</span>
+        {/* Filter Controls: Periode, Jenis, & Rentang Tanggal Kustom */}
+        <section className="liquid-nav rounded-[2rem] p-4 md:p-5 mb-5 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Periode filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Calendar size={14} />
+                <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Periode</span>
+              </div>
+              <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
+                {[
+                  { key: 'month', label: 'Per Bulan' },
+                  { key: 'week', label: 'Per Minggu' },
+                  { key: 'day', label: 'Per Hari' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setTimeframe(tab.key)}
+                    className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
+                      timeframe === tab.key
+                        ? 'liquid-primary text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
-              {[
-                { key: 'month', label: 'Per Bulan' },
-                { key: 'week', label: 'Per Minggu' },
-                { key: 'day', label: 'Per Hari' },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onClick={() => setTimeframe(tab.key)}
-                  className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
-                    timeframe === tab.key
-                      ? 'liquid-primary text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+
+            {/* Jenis filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Filter size={14} />
+                <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Jenis</span>
+              </div>
+              <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
+                {[
+                  { key: 'all', label: 'Semua' },
+                  { key: 'expense', label: 'Pengeluaran' },
+                  { key: 'income', label: 'Pemasukan' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setTypeFilter(tab.key)}
+                    className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
+                      typeFilter === tab.key
+                        ? 'liquid-primary text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Jenis filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-            <div className="flex items-center gap-1.5 text-slate-400">
-              <Filter size={14} />
-              <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Jenis</span>
+          {/* Custom Date Range filter */}
+          <div className="pt-4 border-t border-white/50 dark:border-white/10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="flex items-center gap-1.5 text-slate-400 shrink-0">
+                <CalendarRange size={14} />
+                <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Rentang</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  { key: 'all', label: 'Semua Waktu' },
+                  { key: '7d', label: '7 Hari' },
+                  { key: '30d', label: '30 Hari' },
+                  { key: 'month', label: 'Bulan Ini' },
+                  { key: 'payday', label: 'Siklus Tgl 25' },
+                ].map((preset) => (
+                  <button
+                    key={preset.key}
+                    type="button"
+                    onClick={() => applyDatePreset(preset.key)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                      activePreset === preset.key
+                        ? 'liquid-primary text-white shadow-sm'
+                        : 'liquid-nav-pill text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
-              {[
-                { key: 'all', label: 'Semua' },
-                { key: 'expense', label: 'Pengeluaran' },
-                { key: 'income', label: 'Pemasukan' },
-              ].map((tab) => (
+
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+              <label className="flex items-center gap-2 liquid-nav-pill rounded-2xl px-3 py-1.5">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 shrink-0">Dari</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => {
+                    setDateFrom(e.target.value);
+                    setActivePreset('custom');
+                  }}
+                  className="w-full sm:w-auto text-xs font-semibold bg-transparent border-0 p-0 outline-none shadow-none"
+                />
+              </label>
+
+              <label className="flex items-center gap-2 liquid-nav-pill rounded-2xl px-3 py-1.5">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 shrink-0">Sampai</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => {
+                    setDateTo(e.target.value);
+                    setActivePreset('custom');
+                  }}
+                  className="w-full sm:w-auto text-xs font-semibold bg-transparent border-0 p-0 outline-none shadow-none"
+                />
+              </label>
+
+              {(dateFrom || dateTo) && (
                 <button
-                  key={tab.key}
                   type="button"
-                  onClick={() => setTypeFilter(tab.key)}
-                  className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
-                    typeFilter === tab.key
-                      ? 'liquid-primary text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-                  }`}
+                  onClick={() => applyDatePreset('all')}
+                  className="col-span-2 sm:col-span-1 liquid-nav-pill px-3 py-2 rounded-2xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition inline-flex items-center justify-center gap-1.5 shrink-0"
+                  title="Reset filter tanggal"
                 >
-                  {tab.label}
+                  <RotateCcw size={13} /> Reset
                 </button>
-              ))}
+              )}
             </div>
           </div>
         </section>
@@ -570,7 +686,12 @@ export default function RekapanV37() {
                 Histori {timeframe === 'day' ? 'per hari' : timeframe === 'week' ? 'per minggu' : 'per bulan'}
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                {filtered.length} transaksi{query ? ` untuk "${query}"` : ''} · Halaman {page} dari {totalPages}
+                {filtered.length} transaksi
+                {query ? ` untuk "${query}"` : ''}
+                {effectiveRange.from || effectiveRange.to
+                  ? ` · ${effectiveRange.from ? format(parseISO(effectiveRange.from), 'd MMM yyyy', { locale: id }) : 'Awal'} – ${effectiveRange.to ? format(parseISO(effectiveRange.to), 'd MMM yyyy', { locale: id }) : 'Sekarang'}`
+                  : ''}
+                {` · Halaman ${page} dari ${totalPages}`}
               </p>
             </div>
             <label className="relative md:w-80">
@@ -598,7 +719,7 @@ export default function RekapanV37() {
             <div className="space-y-3">{[1,2,3].map((item) => <div key={item} className="h-20 rounded-2xl bg-white/35 dark:bg-white/[.04] animate-pulse" />)}</div>
           ) : !paginatedGroups.length ? (
             <div className="py-14 text-center text-sm text-slate-400">
-              {query || typeFilter !== 'all' ? 'Tidak ada transaksi yang cocok dengan filter.' : 'Belum ada transaksi.'}
+              {query || typeFilter !== 'all' || dateFrom || dateTo ? 'Tidak ada transaksi yang cocok dengan filter.' : 'Belum ada transaksi.'}
             </div>
           ) : (
             <div className="space-y-5">
