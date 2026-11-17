@@ -4,6 +4,8 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Filter,
   Layers,
@@ -79,6 +81,8 @@ export default function RekapanV37() {
   const [query, setQuery] = useState('');
   const [timeframe, setTimeframe] = useState('month'); // 'month' | 'week' | 'day'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'expense' | 'income'
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -109,6 +113,11 @@ export default function RekapanV37() {
 
   useEffect(() => { load(); }, [user]);
 
+  // Reset to first page when filtering or searching
+  useEffect(() => {
+    setPage(1);
+  }, [query, timeframe, typeFilter]);
+
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return transactions.filter((tx) => {
@@ -125,6 +134,55 @@ export default function RekapanV37() {
       );
     });
   }, [transactions, query, typeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  // Safety check if page exceeds totalPages
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
+  const paginatedTransactions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
+  const paginatedGroups = useMemo(() => {
+    const map = {};
+
+    paginatedTransactions.forEach((tx) => {
+      const { key, label } = getGroupMeta(tx.transaction_date, timeframe);
+      if (!map[key]) {
+        map[key] = { key, label, income: 0, expense: 0, items: [] };
+      }
+      const amount = Number(tx.amount || 0);
+      if (tx.categories?.type === 'income') {
+        map[key].income += amount;
+      } else {
+        map[key].expense += amount;
+      }
+      map[key].items.push(tx);
+    });
+
+    return Object.values(map)
+      .map((group) => ({ ...group, net: group.income - group.expense }))
+      .sort((a, b) => b.key.localeCompare(a.key));
+  }, [paginatedTransactions, timeframe]);
+
+  const paginationPages = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (page <= 3) {
+      return [1, 2, 3, '...', totalPages];
+    }
+    if (page >= totalPages - 2) {
+      return [1, '...', totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', page, '...', totalPages];
+  }, [totalPages, page]);
 
   const filteredSummary = useMemo(() => {
     let income = 0;
@@ -501,8 +559,8 @@ export default function RekapanV37() {
           </div>
         </section>
 
-        {/* Grouped Transactions List */}
-        <section className="liquid-nav rounded-[2.3rem] p-5 md:p-7">
+        {/* Grouped Transactions List with Pagination */}
+        <section id="transactions-section" className="liquid-nav rounded-[2.3rem] p-5 md:p-7">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
               <p className="text-[10px] uppercase tracking-[0.15em] font-medium text-slate-400">
@@ -512,7 +570,7 @@ export default function RekapanV37() {
                 Histori {timeframe === 'day' ? 'per hari' : timeframe === 'week' ? 'per minggu' : 'per bulan'}
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                {filtered.length} transaksi{query ? ` untuk "${query}"` : ''} · {groupedTransactions.length} periode
+                {filtered.length} transaksi{query ? ` untuk "${query}"` : ''} · Halaman {page} dari {totalPages}
               </p>
             </div>
             <label className="relative md:w-80">
@@ -538,18 +596,18 @@ export default function RekapanV37() {
 
           {loading ? (
             <div className="space-y-3">{[1,2,3].map((item) => <div key={item} className="h-20 rounded-2xl bg-white/35 dark:bg-white/[.04] animate-pulse" />)}</div>
-          ) : !groupedTransactions.length ? (
+          ) : !paginatedGroups.length ? (
             <div className="py-14 text-center text-sm text-slate-400">
               {query || typeFilter !== 'all' ? 'Tidak ada transaksi yang cocok dengan filter.' : 'Belum ada transaksi.'}
             </div>
           ) : (
             <div className="space-y-5">
-              {groupedTransactions.map((group) => (
+              {paginatedGroups.map((group) => (
                 <article key={group.key} className="rounded-[1.9rem] border border-white/65 dark:border-white/10 bg-white/32 dark:bg-white/[.025] overflow-hidden">
                   <div className="px-4 md:px-5 py-4 md:py-5 bg-white/34 dark:bg-white/[.03] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
                       <p className="text-sm font-semibold capitalize">{group.label}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">{group.items.length} transaksi</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{group.items.length} transaksi di halaman ini</p>
                     </div>
                     <div className="grid grid-cols-3 gap-2 sm:gap-6 py-1">
                       <div className="min-w-0">
@@ -607,6 +665,91 @@ export default function RekapanV37() {
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && filtered.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/50 dark:border-white/10 mt-6">
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                <span>
+                  Menampilkan <strong className="text-slate-700 dark:text-slate-200">{filtered.length ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, filtered.length)}</strong> dari <strong className="text-slate-700 dark:text-slate-200">{filtered.length}</strong> transaksi
+                </span>
+                {filtered.length > 10 && (
+                  <>
+                    <span className="text-slate-300 dark:text-slate-600">·</span>
+                    <label className="inline-flex items-center gap-1.5">
+                      <span>Baris:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => {
+                          setPageSize(Number(e.target.value));
+                          setPage(1);
+                        }}
+                        className="liquid-nav-pill px-2 py-1 rounded-xl text-xs font-semibold outline-none cursor-pointer"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                      </select>
+                    </label>
+                  </>
+                )}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={page <= 1}
+                    onClick={() => {
+                      setPage((p) => Math.max(1, p - 1));
+                      document.getElementById('transactions-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="liquid-nav-pill px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5 dark:hover:bg-white/5 transition flex items-center gap-1"
+                    aria-label="Halaman sebelumnya"
+                  >
+                    <ChevronLeft size={15} /> Prev
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {paginationPages.map((p, idx) =>
+                      p === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="w-7 text-center text-xs text-slate-400 select-none">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => {
+                            setPage(p);
+                            document.getElementById('transactions-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }}
+                          className={`w-8 h-8 rounded-xl text-xs font-semibold transition-all ${
+                            page === p
+                              ? 'liquid-primary text-white shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={page >= totalPages}
+                    onClick={() => {
+                      setPage((p) => Math.min(totalPages, p + 1));
+                      document.getElementById('transactions-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="liquid-nav-pill px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5 dark:hover:bg-white/5 transition flex items-center gap-1"
+                    aria-label="Halaman berikutnya"
+                  >
+                    Next <ChevronRight size={15} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
