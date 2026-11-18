@@ -1,40 +1,62 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, Home } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-
-import LoginV3 from './pages/LoginV3';
-import HomeV37 from './pages/HomeV37';
-import ForecastV33 from './pages/ForecastV33';
-import SpendingInsightsV36 from './pages/SpendingInsightsV36';
-import InputDataV36 from './pages/InputDataV36';
-import RekapanV37 from './pages/RekapanV37';
-import ProfileV3 from './pages/ProfileV3';
-import DompetV35 from './pages/DompetV35';
-import TransferV35 from './pages/TransferV35';
-import CalendarV32 from './pages/CalendarV32';
-import RecurringV32 from './pages/RecurringV32';
-import BudgetingV31 from './pages/BudgetingV31';
-import SubscriptionsV3 from './pages/SubscriptionsV3';
-import CategoriesV3 from './pages/CategoriesV3';
-import SavingsV3 from './pages/SavingsV3';
-import PlanningV36 from './pages/PlanningV36';
-import AutomationRulesV35 from './pages/AutomationRulesV35';
-import ReconciliationV35 from './pages/ReconciliationV35';
-import TrashV35 from './pages/TrashV35';
-import SinkingFundsV36 from './pages/SinkingFundsV36';
-import DebtsV36 from './pages/DebtsV36';
-import NetWorthV36 from './pages/NetWorthV36';
-import MoneyTagsV36 from './pages/MoneyTagsV36';
-import InboxV36 from './pages/InboxV36';
-import FinancialNotesV36 from './pages/FinancialNotesV36';
-import NotFound from './pages/NotFound';
 
 import NavbarV3 from './components/NavbarV3';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import NetworkStatus from './components/NetworkStatus';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import MonthlyBackupReminder from './components/MonthlyBackupReminder';
+
+const LoginV3 = lazy(() => import('./pages/LoginV3'));
+const HomeV37 = lazy(() => import('./pages/HomeV37'));
+const ForecastV33 = lazy(() => import('./pages/ForecastV33'));
+const SpendingInsightsV36 = lazy(() => import('./pages/SpendingInsightsV36'));
+const InputDataV36 = lazy(() => import('./pages/InputDataV36'));
+const RekapanV37 = lazy(() => import('./pages/RekapanV37'));
+const ProfileV3 = lazy(() => import('./pages/ProfileV3'));
+const DompetV35 = lazy(() => import('./pages/DompetV35'));
+const TransferV35 = lazy(() => import('./pages/TransferV35'));
+const CalendarV32 = lazy(() => import('./pages/CalendarV32'));
+const RecurringV32 = lazy(() => import('./pages/RecurringV32'));
+const BudgetingV31 = lazy(() => import('./pages/BudgetingV31'));
+const SubscriptionsV3 = lazy(() => import('./pages/SubscriptionsV3'));
+const CategoriesV3 = lazy(() => import('./pages/CategoriesV3'));
+const SavingsV3 = lazy(() => import('./pages/SavingsV3'));
+const PlanningV36 = lazy(() => import('./pages/PlanningV36'));
+const AutomationRulesV35 = lazy(() => import('./pages/AutomationRulesV35'));
+const ReconciliationV35 = lazy(() => import('./pages/ReconciliationV35'));
+const TrashV35 = lazy(() => import('./pages/TrashV35'));
+const SinkingFundsV36 = lazy(() => import('./pages/SinkingFundsV36'));
+const DebtsV36 = lazy(() => import('./pages/DebtsV36'));
+const NetWorthV36 = lazy(() => import('./pages/NetWorthV36'));
+const MoneyTagsV36 = lazy(() => import('./pages/MoneyTagsV36'));
+const InboxV36 = lazy(() => import('./pages/InboxV36'));
+const FinancialNotesV36 = lazy(() => import('./pages/FinancialNotesV36'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+
+const PLANNING_SUBROUTES = [
+  '/budget',
+  '/subscription',
+  '/recurring',
+  '/calendar',
+  '/forecast',
+  '/insights',
+  '/inbox',
+  '/rules',
+  '/tags',
+  '/reconcile',
+  '/trash',
+  '/savings',
+  '/sinking-funds',
+  '/debts',
+  '/net-worth',
+  '/notes',
+  '/categories',
+];
 
 function LoadingScreen() {
   return (
@@ -63,12 +85,35 @@ function AppLayout({ children }) {
   const { user } = useAuth();
   const location = useLocation();
   const authScreen = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+  const isPlanningSubroute = PLANNING_SUBROUTES.includes(location.pathname);
 
   return (
     <div className="liquid-app">
       <NetworkStatus />
       {user && !authScreen && <NavbarV3 />}
-      {children}
+      {user && !authScreen && isPlanningSubroute && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-28">
+          <div className="flex items-center gap-2">
+            <Link
+              to="/planning"
+              className="liquid-nav-pill inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft size={14} /> Kembali ke Planning
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            >
+              <Home size={13} /> Dashboard
+            </Link>
+          </div>
+        </div>
+      )}
+      <div className={user && !authScreen && isPlanningSubroute ? 'lf-subroute-shell' : ''}>
+        <Suspense fallback={<LoadingScreen />}>
+          {children}
+        </Suspense>
+      </div>
       {user && !authScreen && <PwaInstallPrompt />}
       {user && !authScreen && <MonthlyBackupReminder />}
     </div>

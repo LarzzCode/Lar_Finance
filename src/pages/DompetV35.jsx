@@ -1,7 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRightLeft, MoreHorizontal, Pencil, Plus, Scale, ShieldCheck, Trash2, WalletCards, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+  ArrowDownRight,
+  ArrowRight,
+  ArrowRightLeft,
+  ArrowUpRight,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  ReceiptText,
+  Scale,
+  ShieldCheck,
+  Trash2,
+  WalletCards,
+  X,
+} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
+import { id } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -9,10 +25,14 @@ import { calculateWalletBalances, rupiah } from '../lib/financeDataV35';
 
 export default function DompetV35() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [wallets, setWallets] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [allTransfers, setAllTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [selectedWalletHistory, setSelectedWalletHistory] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', saldo_awal: '' });
@@ -22,9 +42,21 @@ export default function DompetV35() {
     setLoading(true);
     const [walletRes, txRes, transferRes, adjustmentRes] = await Promise.all([
       supabase.from('wallets').select('*').eq('user_id', user.id).order('created_at'),
-      supabase.from('transactions').select('amount, wallet_id, transaction_date, categories(type)').eq('user_id', user.id),
-      supabase.from('transfers').select('amount, from_wallet_id, to_wallet_id, transfer_date').eq('user_id', user.id),
-      supabase.from('wallet_adjustments').select('amount, wallet_id, adjustment_date, actual_balance, created_at').eq('user_id', user.id),
+      supabase
+        .from('transactions')
+        .select('id, amount, wallet_id, transaction_date, description, created_at, categories(name, type)')
+        .eq('user_id', user.id)
+        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('transfers')
+        .select('id, amount, from_wallet_id, to_wallet_id, transfer_date, note, created_at')
+        .eq('user_id', user.id)
+        .order('transfer_date', { ascending: false }),
+      supabase
+        .from('wallet_adjustments')
+        .select('amount, wallet_id, adjustment_date, actual_balance, created_at')
+        .eq('user_id', user.id),
     ]);
     const error = walletRes.error || txRes.error || transferRes.error || adjustmentRes.error;
     if (error) {
@@ -32,7 +64,11 @@ export default function DompetV35() {
       setLoading(false);
       return;
     }
-    setWallets(calculateWalletBalances(walletRes.data || [], txRes.data || [], transferRes.data || [], adjustmentRes.data || []));
+    const txData = txRes.data || [];
+    const transferData = transferRes.data || [];
+    setAllTransactions(txData);
+    setAllTransfers(transferData);
+    setWallets(calculateWalletBalances(walletRes.data || [], txData, transferData, adjustmentRes.data || []));
     setLoading(false);
   };
 
@@ -45,6 +81,48 @@ export default function DompetV35() {
     transferIn: acc.transferIn + Number(wallet.total_transfer_in || 0),
     transferOut: acc.transferOut + Number(wallet.total_transfer_out || 0),
   }), { balance: 0, totalIncome: 0, totalExpense: 0, transferIn: 0, transferOut: 0 }), [wallets]);
+
+  const walletHistoryItems = useMemo(() => {
+    if (!selectedWalletHistory) return [];
+    const wid = String(selectedWalletHistory.id);
+    const walletMap = Object.fromEntries(wallets.map((w) => [String(w.id), w.name]));
+
+    const txItems = allTransactions
+      .filter((tx) => String(tx.wallet_id) === wid)
+      .map((tx) => ({
+        id: `tx-${tx.id}`,
+        date: tx.transaction_date,
+        createdAt: tx.created_at || tx.transaction_date,
+        title: tx.description || tx.categories?.name || 'Transaksi',
+        subtitle: tx.categories?.name || 'Kategori',
+        amount: Number(tx.amount || 0),
+        direction: tx.categories?.type === 'income' ? 'in' : 'out',
+        kind: 'tx',
+      }));
+
+    const transferItems = allTransfers
+      .filter((tr) => String(tr.from_wallet_id) === wid || String(tr.to_wallet_id) === wid)
+      .map((tr) => {
+        const isIncoming = String(tr.to_wallet_id) === wid;
+        const otherName = isIncoming
+          ? walletMap[String(tr.from_wallet_id)] || 'Dompet lain'
+          : walletMap[String(tr.to_wallet_id)] || 'Dompet lain';
+        return {
+          id: `tr-${tr.id}`,
+          date: tr.transfer_date,
+          createdAt: tr.created_at || tr.transfer_date,
+          title: tr.note || (isIncoming ? `Transfer dari ${otherName}` : `Transfer ke ${otherName}`),
+          subtitle: isIncoming ? `Transfer masuk · dari ${otherName}` : `Transfer keluar · ke ${otherName}`,
+          amount: Number(tr.amount || 0),
+          direction: isIncoming ? 'in' : 'out',
+          kind: 'transfer',
+        };
+      });
+
+    return [...txItems, ...transferItems]
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.createdAt || '').localeCompare(a.createdAt || ''))
+      .slice(0, 25);
+  }, [selectedWalletHistory, allTransactions, allTransfers, wallets]);
 
   const openCreate = () => { setEditData(null); setForm({ name: '', saldo_awal: '' }); setModalOpen(true); };
   const openEdit = (wallet) => { setEditData(wallet); setForm({ name: wallet.name || '', saldo_awal: String(wallet.saldo_awal ?? '') }); setOpenMenu(null); setModalOpen(true); };
@@ -91,27 +169,333 @@ export default function DompetV35() {
     <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5 mb-8">
-          <div><p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400 mb-2">Wallet overview</p><h1 className="text-[2rem] md:text-[2.6rem] font-semibold tracking-[-0.04em]">Dompet saya</h1><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Saldo sekarang dihitung kumulatif dari saldo awal + seluruh pemasukan − seluruh pengeluaran + transfer, sejak dompet mulai digunakan.</p></div>
-          <div className="flex flex-wrap gap-2"><Link to="/reconcile" className="liquid-nav inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-xs font-semibold"><Scale size={16} /> Cocokkan saldo</Link><Link to="/transfer" className="liquid-nav inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-xs font-semibold"><ArrowRightLeft size={16} /> Transfer</Link><button onClick={openCreate} className="liquid-primary inline-flex items-center justify-center gap-2 text-white rounded-2xl px-5 py-3.5 text-xs font-semibold"><Plus size={16} /> Tambah dompet</button></div>
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400 mb-2">Wallet overview</p>
+            <h1 className="text-[2rem] md:text-[2.6rem] font-semibold tracking-[-0.04em]">Dompet saya</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Klik pada kartu dompet untuk melihat mutasi keluar-masuk, atau filter penuh di halaman Laporan.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/reconcile" className="liquid-nav inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-xs font-semibold">
+              <Scale size={16} /> Cocokkan saldo
+            </Link>
+            <Link to="/transfer" className="liquid-nav inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-xs font-semibold">
+              <ArrowRightLeft size={16} /> Transfer
+            </Link>
+            <button onClick={openCreate} className="liquid-primary inline-flex items-center justify-center gap-2 text-white rounded-2xl px-5 py-3.5 text-xs font-semibold">
+              <Plus size={16} /> Tambah dompet
+            </button>
+          </div>
         </header>
 
         <section className="grid lg:grid-cols-[1.2fr_.8fr] gap-4 mb-7">
-          <div className="relative overflow-hidden rounded-[2.2rem] border border-white/10 bg-slate-950/90 text-white p-6 md:p-8 shadow-[0_20px_70px_rgba(15,23,42,.18)] backdrop-blur-2xl"><div className="absolute -right-20 -top-20 w-56 h-56 rounded-full bg-indigo-400/20 blur-3xl" /><div className="relative"><p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400 mb-3">Total saldo saat ini</p><p className={`text-4xl md:text-5xl font-semibold tracking-[-0.04em] ${summary.balance < 0 ? 'text-rose-300' : 'text-white'}`}>{loading ? '…' : rupiah(summary.balance)}</p><p className="text-xs text-slate-400 mt-3">Angka ini tidak di-reset tiap bulan. Rekonsiliasi tetap bisa dipakai sebagai anchor bila saldo nyata berbeda.</p></div></div>
-          <div className="grid grid-cols-2 gap-4"><div className="liquid-nav rounded-[1.8rem] p-5"><p className="text-[9px] font-medium uppercase tracking-[0.15em] text-emerald-600">Total pemasukan</p><p className="text-lg font-semibold mt-2 text-emerald-600">+{rupiah(summary.totalIncome)}</p></div><div className="liquid-nav rounded-[1.8rem] p-5"><p className="text-[9px] font-medium uppercase tracking-[0.15em] text-rose-500">Total pengeluaran</p><p className="text-lg font-semibold mt-2 text-rose-500">-{rupiah(summary.totalExpense)}</p></div><div className="col-span-2 liquid-nav rounded-[1.8rem] p-5 flex gap-3"><ShieldCheck size={18} className="text-indigo-500 shrink-0" /><div><p className="font-semibold text-sm">Safe wallet guard</p><p className="text-xs text-slate-400 mt-1">Dompet dengan histori transaksi atau transfer tetap terlindungi dari penghapusan.</p></div></div></div>
+          <div className="relative overflow-hidden rounded-[2.2rem] border border-white/10 bg-slate-950/90 text-white p-6 md:p-8 shadow-[0_20px_70px_rgba(15,23,42,.18)] backdrop-blur-2xl">
+            <div className="absolute -right-20 -top-20 w-56 h-56 rounded-full bg-indigo-400/20 blur-3xl" />
+            <div className="relative">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400 mb-3">Total saldo saat ini</p>
+              <p className={`lf-money text-4xl md:text-5xl font-semibold tracking-[-0.04em] ${summary.balance < 0 ? 'text-rose-300' : 'text-white'}`}>
+                {loading ? '…' : rupiah(summary.balance)}
+              </p>
+              <p className="text-xs text-slate-400 mt-3">
+                Angka ini dihitung kumulatif dari saldo awal, transaksi, transfer, dan rekonsiliasi.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="liquid-nav rounded-[1.8rem] p-5">
+              <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-emerald-600">Total pemasukan</p>
+              <p className="lf-money text-lg font-semibold mt-2 text-emerald-600">+{rupiah(summary.totalIncome)}</p>
+            </div>
+            <div className="liquid-nav rounded-[1.8rem] p-5">
+              <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-rose-500">Total pengeluaran</p>
+              <p className="lf-money text-lg font-semibold mt-2 text-rose-500">-{rupiah(summary.totalExpense)}</p>
+            </div>
+            <div className="col-span-2 liquid-nav rounded-[1.8rem] p-5 flex gap-3">
+              <ShieldCheck size={18} className="text-indigo-500 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Safe wallet guard</p>
+                <p className="text-xs text-slate-400 mt-1">Dompet dengan histori transaksi atau transfer tetap terlindungi dari penghapusan.</p>
+              </div>
+            </div>
+          </div>
         </section>
 
-        {loading ? <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">{[1,2,3].map((item) => <div key={item} className="h-48 liquid-nav rounded-[2rem] animate-pulse" />)}</div> : !wallets.length ? <div className="liquid-nav rounded-[2rem] py-16 text-center"><WalletCards size={30} className="mx-auto text-slate-300 mb-4" /><p className="font-semibold">Belum ada dompet.</p><button onClick={openCreate} className="mt-4 text-sm font-medium text-indigo-600">+ Tambah dompet pertama</button></div> : (
+        {loading ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3].map((item) => <div key={item} className="h-48 liquid-nav rounded-[2rem] animate-pulse" />)}
+          </div>
+        ) : !wallets.length ? (
+          <div className="liquid-nav rounded-[2rem] py-16 text-center">
+            <WalletCards size={30} className="mx-auto text-slate-300 mb-4" />
+            <p className="font-semibold">Belum ada dompet.</p>
+            <button onClick={openCreate} className="mt-4 text-sm font-medium text-indigo-600">+ Tambah dompet pertama</button>
+          </div>
+        ) : (
           <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {wallets.map((wallet, index) => <motion.article key={wallet.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} className="liquid-nav rounded-[2rem] p-6 relative">
-              <div className="flex items-start justify-between gap-4"><div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-semibold text-lg uppercase">{wallet.name?.charAt(0) || 'W'}</div><div className="relative"><button onClick={() => setOpenMenu((current) => current === wallet.id ? null : wallet.id)} className="w-9 h-9 rounded-xl bg-white/45 dark:bg-white/[.04] flex items-center justify-center"><MoreHorizontal size={18} /></button><AnimatePresence>{openMenu === wallet.id && <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 top-11 z-20 w-40 liquid-nav rounded-2xl p-1.5"><button onClick={() => openEdit(wallet)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium"><Pencil size={14} /> Edit</button><button onClick={() => remove(wallet)} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium text-rose-500"><Trash2 size={14} /> Hapus aman</button></motion.div>}</AnimatePresence></div></div>
-              <div className="mt-6"><p className="text-sm text-slate-500 dark:text-slate-400">{wallet.name}</p><p className={`text-2xl md:text-3xl font-semibold tracking-[-0.03em] mt-1 ${wallet.current_balance < 0 ? 'text-rose-500' : ''}`}>{rupiah(wallet.current_balance)}</p><p className="text-[10px] text-slate-400 mt-1">Saldo saat ini</p></div>
-              <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-white/50 dark:border-white/10"><div><p className="text-[9px] uppercase tracking-wider text-slate-400">Transfer masuk</p><p className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 mt-1">+{rupiah(wallet.total_transfer_in)}</p></div><div><p className="text-[9px] uppercase tracking-wider text-slate-400">Transfer keluar</p><p className="text-xs font-semibold text-slate-500 mt-1">-{rupiah(wallet.total_transfer_out)}</p></div><div><p className="text-[9px] uppercase tracking-wider text-slate-400">Rekonsiliasi</p><p className="text-xs font-semibold mt-1 text-emerald-600 dark:text-emerald-300">{wallet.latest_reconciliation ? 'Aktif' : 'Belum ada'}</p></div></div>
-            </motion.article>)}
+            {wallets.map((wallet, index) => (
+              <motion.article
+                key={wallet.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+                onClick={() => setSelectedWalletHistory(wallet)}
+                className="liquid-nav rounded-[2rem] p-6 relative cursor-pointer transition-transform hover:-translate-y-0.5 group"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-semibold text-lg uppercase">
+                    {wallet.name?.charAt(0) || 'W'}
+                  </div>
+                  <div className="relative" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenMenu((current) => current === wallet.id ? null : wallet.id)}
+                      className="w-9 h-9 rounded-xl bg-white/45 dark:bg-white/[.04] flex items-center justify-center hover:bg-white/70 dark:hover:bg-white/10 transition"
+                      aria-label={`Opsi dompet ${wallet.name}`}
+                    >
+                      <MoreHorizontal size={18} />
+                    </button>
+                    <AnimatePresence>
+                      {openMenu === wallet.id && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          className="absolute right-0 top-11 z-20 w-44 liquid-nav rounded-2xl p-1.5"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenMenu(null);
+                              navigate(`/rekap?wallet=${wallet.id}`);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5"
+                          >
+                            <ReceiptText size={14} /> Buka di Laporan
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(wallet)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium hover:bg-black/5 dark:hover:bg-white/5"
+                          >
+                            <Pencil size={14} /> Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(wallet)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium text-rose-500 hover:bg-rose-500/10"
+                          >
+                            <Trash2 size={14} /> Hapus aman
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{wallet.name}</p>
+                  <p className={`lf-money text-2xl md:text-3xl font-semibold tracking-[-0.03em] mt-1 ${wallet.current_balance < 0 ? 'text-rose-500' : ''}`}>
+                    {rupiah(wallet.current_balance)}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">Saldo saat ini</p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-white/50 dark:border-white/10">
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wider text-slate-400">Transfer masuk</p>
+                    <p className="lf-money text-xs font-semibold text-indigo-600 dark:text-indigo-300 mt-1">+{rupiah(wallet.total_transfer_in)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wider text-slate-400">Transfer keluar</p>
+                    <p className="lf-money text-xs font-semibold text-slate-500 mt-1">-{rupiah(wallet.total_transfer_out)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wider text-slate-400">Rekonsiliasi</p>
+                    <p className="text-xs font-semibold mt-1 text-emerald-600 dark:text-emerald-300">
+                      {wallet.latest_reconciliation ? 'Aktif' : 'Belum ada'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/40 dark:border-white/[.06] flex items-center justify-between text-xs font-semibold text-indigo-600 dark:text-indigo-300">
+                  <span>Lihat mutasi dompet</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.article>
+            ))}
           </section>
         )}
       </div>
 
-      <AnimatePresence>{modalOpen && <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/35 backdrop-blur-md"><motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }} className="liquid-nav w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7"><div className="flex items-center justify-between mb-6"><div><p className="text-lg font-semibold">{editData ? 'Edit dompet' : 'Dompet baru'}</p><p className="text-xs text-slate-400 mt-1">Saldo awal menjadi titik awal perhitungan kumulatif dompet.</p></div><button onClick={close} className="w-9 h-9 rounded-full bg-white/45 dark:bg-white/[.05] flex items-center justify-center"><X size={17} /></button></div><form onSubmit={save} className="space-y-5"><label className="block"><span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Nama dompet</span><input autoFocus required maxLength={40} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="BCA, Tunai, SeaBank..." className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none" /></label><label className="block"><span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Saldo awal</span><input required type="number" value={form.saldo_awal} onChange={(e) => setForm({ ...form, saldo_awal: e.target.value })} placeholder="0" className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none" /></label><div className="grid grid-cols-2 gap-3"><button type="button" onClick={close} className="h-12 rounded-2xl bg-white/45 dark:bg-white/[.05] font-medium text-sm">Batal</button><button disabled={saving} className="liquid-primary h-12 rounded-2xl text-white font-semibold text-sm disabled:opacity-60">{saving ? 'Menyimpan…' : 'Simpan'}</button></div></form></motion.div></div>}</AnimatePresence>
+      {/* Modal Mutasi Dompet */}
+      <AnimatePresence>
+        {selectedWalletHistory && (
+          <div
+            className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/35 backdrop-blur-md"
+            onClick={() => setSelectedWalletHistory(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="lf-mobile-sheet liquid-nav w-full max-w-lg rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7 max-h-[86vh] flex flex-col"
+            >
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/50 dark:border-white/10">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Mutasi Dompet</p>
+                  <h3 className="text-xl font-semibold mt-1">{selectedWalletHistory.name}</h3>
+                  <p className="lf-money text-sm font-semibold text-indigo-600 dark:text-indigo-300 mt-0.5">
+                    Saldo saat ini: {rupiah(selectedWalletHistory.current_balance)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedWalletHistory(null)}
+                  className="liquid-nav-pill w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                  aria-label="Tutup mutasi dompet"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 my-4">
+                <div className="rounded-2xl bg-white/40 dark:bg-white/[.04] p-3.5">
+                  <p className="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-300">Total Masuk</p>
+                  <p className="lf-money text-sm font-semibold mt-1 text-emerald-600 dark:text-emerald-300">
+                    +{rupiah(Number(selectedWalletHistory.total_income || 0) + Number(selectedWalletHistory.total_transfer_in || 0))}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white/40 dark:bg-white/[.04] p-3.5">
+                  <p className="text-[10px] uppercase tracking-wider text-rose-500">Total Keluar</p>
+                  <p className="lf-money text-sm font-semibold mt-1 text-rose-500">
+                    -{rupiah(Number(selectedWalletHistory.total_expense || 0) + Number(selectedWalletHistory.total_transfer_out || 0))}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-white/50 dark:divide-white/10 pr-1">
+                {walletHistoryItems.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-slate-400">
+                    Belum ada transaksi atau transfer di dompet ini.
+                  </div>
+                ) : (
+                  walletHistoryItems.map((item) => {
+                    const isIncoming = item.direction === 'in';
+                    return (
+                      <div key={item.id} className="py-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            item.kind === 'transfer'
+                              ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+                              : isIncoming
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
+                                : 'bg-rose-500/10 text-rose-500'
+                          }`}>
+                            {item.kind === 'transfer' ? (
+                              <ArrowRightLeft size={15} />
+                            ) : isIncoming ? (
+                              <ArrowUpRight size={16} />
+                            ) : (
+                              <ArrowDownRight size={16} />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold truncate">{item.title}</p>
+                            <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                              {item.date ? format(parseISO(item.date), 'd MMM yyyy', { locale: id }) : '-'} · {item.subtitle}
+                            </p>
+                          </div>
+                        </div>
+                        <p className={`lf-money text-sm font-semibold shrink-0 pl-2 ${
+                          isIncoming ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-500'
+                        }`}>
+                          {isIncoming ? '+' : '-'}{rupiah(item.amount)}
+                        </p>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="pt-4 mt-4 border-t border-white/50 dark:border-white/10 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedWalletHistory(null)}
+                  className="h-11 rounded-2xl bg-white/45 dark:bg-white/[.05] text-xs font-semibold"
+                >
+                  Tutup
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/rekap?wallet=${selectedWalletHistory.id}`)}
+                  className="liquid-primary h-11 rounded-2xl text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+                >
+                  Filter di Laporan <ArrowRight size={14} />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Buat / Edit Dompet */}
+      <AnimatePresence>
+        {modalOpen && (
+          <div className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/35 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              className="lf-mobile-sheet liquid-nav w-full max-w-md rounded-t-[2rem] sm:rounded-[2rem] p-6 md:p-7"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <p className="text-lg font-semibold">{editData ? 'Edit dompet' : 'Dompet baru'}</p>
+                  <p className="text-xs text-slate-400 mt-1">Saldo awal menjadi titik awal perhitungan kumulatif dompet.</p>
+                </div>
+                <button onClick={close} className="w-9 h-9 rounded-full bg-white/45 dark:bg-white/[.05] flex items-center justify-center">
+                  <X size={17} />
+                </button>
+              </div>
+              <form onSubmit={save} className="space-y-5">
+                <label className="block">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Nama dompet</span>
+                  <input
+                    autoFocus
+                    required
+                    maxLength={40}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="BCA, Tunai, SeaBank..."
+                    className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Saldo awal</span>
+                  <input
+                    required
+                    type="number"
+                    value={form.saldo_awal}
+                    onChange={(e) => setForm({ ...form, saldo_awal: e.target.value })}
+                    placeholder="0"
+                    className="w-full mt-2 rounded-2xl px-4 py-4 font-medium outline-none"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={close} className="h-12 rounded-2xl bg-white/45 dark:bg-white/[.05] font-medium text-sm">
+                    Batal
+                  </button>
+                  <button disabled={saving} className="liquid-primary h-12 rounded-2xl text-white font-semibold text-sm disabled:opacity-60">
+                    {saving ? 'Menyimpan…' : 'Simpan'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

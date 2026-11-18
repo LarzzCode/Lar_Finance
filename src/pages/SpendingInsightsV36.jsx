@@ -45,7 +45,6 @@ export default function SpendingInsightsV36() {
     <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         <header className="mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-4"><ArrowLeft size={14} /> Dashboard</Link>
           <p className="text-[10px] uppercase tracking-[0.16em] font-medium text-slate-400">Intelligence / Spending</p>
           <h1 className="text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em] mt-1">Spending anomaly detection</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-3xl leading-relaxed">Lar Finance membaca pengeluaran sejak tanggal 1 bulan ini sampai hari ini, lalu membandingkannya dengan rentang tanggal yang sama pada 6 bulan sebelumnya. Median dipakai sebagai baseline agar satu bulan ekstrem tidak mendistorsi pola normal.</p>

@@ -5,7 +5,7 @@ import { id } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { rupiah } from '../lib/financeData';
+import { rupiah } from '../lib/financeDataV35';
 
 const dueDateForMonth = (day, monthDate) => {
   const last = endOfMonth(monthDate).getDate();

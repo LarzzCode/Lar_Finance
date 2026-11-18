@@ -6,7 +6,7 @@ import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { currentMonthRange, loadAccessibleCategories, rupiah } from '../lib/financeData';
+import { currentMonthRange, loadAccessibleCategories, rupiah } from '../lib/financeDataV35';
 
 const normalize = (value) => (value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 const dueStatus = (dueDate, paid) => {

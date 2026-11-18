@@ -2,19 +2,80 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import * as icons from 'lucide-react';
+import {
+  ArrowDownLeft,
+  ArrowLeft,
+  ArrowUpRight,
+  Baby,
+  Briefcase,
+  CalendarDays,
+  Car,
+  Check,
+  Coffee,
+  Dumbbell,
+  Gamepad2,
+  Gift,
+  GraduationCap,
+  Hash,
+  HeartHandshake,
+  HeartPulse,
+  HelpCircle,
+  Home,
+  LayoutGrid,
+  ListChecks,
+  MinusCircle,
+  Music,
+  NotebookPen,
+  Plane,
+  PlusCircle,
+  Scissors,
+  ShoppingCart,
+  Smartphone,
+  Sparkles,
+  SplitSquareHorizontal,
+  Tags,
+  Users,
+  Utensils,
+  Wallet,
+  WalletCards,
+  Wifi,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import {
   calculateWalletBalances,
-  currentMonthRange,
   findMatchingRule,
   loadAccessibleCategories,
   rupiah,
 } from '../lib/financeDataV35';
 
+const ICON_MAP = {
+  Utensils,
+  HeartPulse,
+  GraduationCap,
+  Wifi,
+  Users,
+  HeartHandshake,
+  ShoppingCart,
+  Sparkles,
+  Car,
+  LayoutGrid,
+  Briefcase,
+  Gift,
+  Wallet,
+  Coffee,
+  Dumbbell,
+  Gamepad2,
+  Home,
+  Music,
+  Plane,
+  Smartphone,
+  Scissors,
+  Baby,
+};
+
 const DynamicIcon = ({ name, size = 20 }) => {
-  const Icon = icons[name] || icons.HelpCircle;
+  const Icon = ICON_MAP[name] || HelpCircle;
   return <Icon size={size} />;
 };
 
@@ -51,7 +112,7 @@ export default function InputDataV36() {
   const [splitMode, setSplitMode] = useState(false);
   const [splits, setSplits] = useState([newSplitRow(), newSplitRow()]);
 
-  const loadData = async () => {
+  const loadData = async (preserveCategory = false) => {
     if (!user) return;
     setDataLoading(true);
     const [categoryRes, walletRes, txRes, transferRes, adjustmentRes, ruleRes] = await Promise.all([
@@ -111,9 +172,11 @@ export default function InputDataV36() {
     setWallets(calculated);
     setRules(ruleRes.data || []);
     setFrequencies(freq);
-    setSelectedCategory('');
-    setCategoryManual(false);
-    setMatchedRule(null);
+    if (!preserveCategory) {
+      setSelectedCategory('');
+      setCategoryManual(false);
+      setMatchedRule(null);
+    }
     setSelectedWallet((current) =>
       calculated.some((wallet) => String(wallet.id) === String(current))
         ? current
@@ -208,8 +271,7 @@ export default function InputDataV36() {
     setSplits((current) => current.length <= 2 ? current : current.filter((_, rowIndex) => rowIndex !== index));
   };
 
-  const submit = async (event) => {
-    event.preventDefault();
+  const saveTransaction = async (keepOpen = false) => {
     const wallet = wallets.find((item) => String(item.id) === String(selectedWallet));
 
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
@@ -264,6 +326,19 @@ export default function InputDataV36() {
 
     if (result.error) return toast.error(result.error.message);
 
+    if (keepOpen) {
+      toast.success('Tersimpan · Silakan catat transaksi berikutnya');
+      setAmount('');
+      setDescription('');
+      setTagsText('');
+      setSplits([newSplitRow(), newSplitRow()]);
+      loadData(true);
+      setTimeout(() => {
+        document.getElementById('transaction-amount')?.focus();
+      }, 50);
+      return;
+    }
+
     toast.success(
       splitMode
         ? `Split transaksi tersimpan ke ${splits.length} kategori`
@@ -274,6 +349,11 @@ export default function InputDataV36() {
     navigate('/');
   };
 
+  const submit = (event) => {
+    event.preventDefault();
+    saveTransaction(false);
+  };
+
   return (
     <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -282,12 +362,12 @@ export default function InputDataV36() {
             onClick={() => navigate('/')}
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-white mb-4"
           >
-            <icons.ArrowLeft size={15} /> Kembali
+            <ArrowLeft size={15} /> Kembali
           </button>
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400 mb-2">Lar Finance V3.6</p>
           <h1 className="text-[2rem] md:text-[2.7rem] font-semibold tracking-[-0.04em]">Catat arus kas</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Auto-category, split transaction, money tags, dan saldo hasil rekonsiliasi sekarang bekerja dalam satu flow.
+            Auto-category, split transaction, money tags, dan opsi simpan beruntun tanpa keluar halaman.
           </p>
         </header>
 
@@ -296,8 +376,8 @@ export default function InputDataV36() {
             <section className="liquid-nav rounded-[2.3rem] p-5 md:p-6">
               <div className="grid grid-cols-2 gap-2 p-1.5 rounded-[1.35rem] bg-white/35 dark:bg-white/[.03] border border-white/60 dark:border-white/10">
                 {[
-                  ['expense', 'Pengeluaran', icons.ArrowUpRight],
-                  ['income', 'Pemasukan', icons.ArrowDownLeft],
+                  ['expense', 'Pengeluaran', ArrowUpRight],
+                  ['income', 'Pemasukan', ArrowDownLeft],
                 ].map(([key, label, Icon]) => (
                   <button
                     key={key}
@@ -337,7 +417,7 @@ export default function InputDataV36() {
               <div className="grid sm:grid-cols-2 gap-5">
                 <label>
                   <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                    <icons.CalendarDays size={14} /> Tanggal
+                    <CalendarDays size={14} /> Tanggal
                   </span>
                   <input
                     type="date"
@@ -349,7 +429,7 @@ export default function InputDataV36() {
 
                 <label>
                   <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                    <icons.WalletCards size={14} /> Sumber dana
+                    <WalletCards size={14} /> Sumber dana
                   </span>
                   <select
                     value={selectedWallet}
@@ -367,7 +447,7 @@ export default function InputDataV36() {
 
               <label className="block">
                 <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                  <icons.NotebookPen size={14} /> Catatan / merchant
+                  <NotebookPen size={14} /> Catatan / merchant
                 </span>
                 <textarea
                   rows={3}
@@ -381,7 +461,7 @@ export default function InputDataV36() {
 
               <label className="block">
                 <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                  <icons.Hash size={14} /> Money tags · opsional
+                  <Hash size={14} /> Money tags · opsional
                 </span>
                 <input
                   value={tagsText}
@@ -394,7 +474,7 @@ export default function InputDataV36() {
 
               {!splitMode && matchedRule && (
                 <div className="rounded-2xl bg-indigo-500/[.07] border border-indigo-500/10 p-4 flex gap-3">
-                  <icons.Sparkles size={17} className="text-indigo-500 shrink-0 mt-0.5" />
+                  <Sparkles size={17} className="text-indigo-500 shrink-0 mt-0.5" />
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Auto-category aktif</p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
@@ -408,7 +488,7 @@ export default function InputDataV36() {
               <div className="rounded-[1.7rem] bg-white/30 dark:bg-white/[.025] border border-white/60 dark:border-white/10 p-4 flex items-center justify-between gap-4">
                 <div className="flex gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0">
-                    <icons.SplitSquareHorizontal size={17} />
+                    <SplitSquareHorizontal size={17} />
                   </div>
                   <div>
                     <p className="text-sm font-medium">Split transaction</p>
@@ -431,7 +511,7 @@ export default function InputDataV36() {
                 <div>
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                      <icons.ListChecks size={14} /> Pecahan kategori
+                      <ListChecks size={14} /> Pecahan kategori
                     </span>
                     <button
                       type="button"
@@ -469,7 +549,7 @@ export default function InputDataV36() {
                           className="w-10 h-10 rounded-xl text-slate-400 disabled:opacity-20"
                           aria-label="Hapus pecahan"
                         >
-                          <icons.MinusCircle size={17} />
+                          <MinusCircle size={17} />
                         </button>
                       </div>
                     ))}
@@ -490,7 +570,7 @@ export default function InputDataV36() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">
-                      <icons.Tags size={14} /> Kategori
+                      <Tags size={14} /> Kategori
                     </span>
                     <div className="flex items-center gap-3">
                       <Link to="/rules" className="text-[10px] text-indigo-600 dark:text-indigo-300">Atur rule</Link>
@@ -548,18 +628,32 @@ export default function InputDataV36() {
                 </div>
               )}
 
-              <button
-                disabled={!canSubmit}
-                className={`w-full rounded-2xl py-4 text-sm font-semibold text-white disabled:opacity-40 ${
-                  type === 'expense' ? 'bg-rose-500' : 'bg-emerald-500'
-                }`}
-              >
-                {loading
-                  ? 'Menyimpan…'
-                  : splitMode
-                    ? `Simpan split ke ${splits.length} kategori`
-                    : `Simpan ${type === 'expense' ? 'Pengeluaran' : 'Pemasukan'}`}
-              </button>
+              <div className="grid sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={!canSubmit}
+                  onClick={() => saveTransaction(true)}
+                  className="liquid-nav-pill rounded-2xl py-4 px-4 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-white/70 dark:hover:bg-white/10 transition disabled:opacity-40 inline-flex items-center justify-center gap-2"
+                >
+                  <PlusCircle size={16} />
+                  {loading ? 'Menyimpan…' : 'Simpan & Catat Lagi'}
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className={`rounded-2xl py-4 px-4 text-xs sm:text-sm font-semibold text-white disabled:opacity-40 inline-flex items-center justify-center gap-2 ${
+                    type === 'expense' ? 'bg-rose-500' : 'bg-emerald-500'
+                  }`}
+                >
+                  <Check size={16} />
+                  {loading
+                    ? 'Menyimpan…'
+                    : splitMode
+                      ? `Simpan split (${splits.length})`
+                      : `Simpan ${type === 'expense' ? 'Pengeluaran' : 'Pemasukan'}`}
+                </button>
+              </div>
             </section>
           </form>
 

@@ -5,7 +5,7 @@ import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { rupiah } from '../lib/financeData';
+import { rupiah } from '../lib/financeDataV35';
 
 const emptyForm = { name: '', target_amount: '', emoji: '🎯', color: 'indigo', current_amount: 0 };
 const gradients = {

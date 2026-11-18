@@ -5,7 +5,7 @@ import { endOfMonth, format, startOfMonth } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { loadAccessibleCategories, rupiah } from '../lib/financeData';
+import { loadAccessibleCategories, rupiah } from '../lib/financeDataV35';
 
 const emptyForm = {
   name: '',

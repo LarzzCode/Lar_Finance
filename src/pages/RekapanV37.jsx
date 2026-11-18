@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDownRight,
@@ -15,6 +16,7 @@ import {
   Search,
   Sun,
   Trash2,
+  WalletCards,
   X,
 } from 'lucide-react';
 import { endOfMonth, endOfWeek, format, parseISO, startOfMonth, startOfWeek, subDays } from 'date-fns';
@@ -77,12 +79,14 @@ const StatCard = ({ label, value, tone = 'slate', icon: Icon }) => {
 export default function RekapanV37() {
   const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
   const [wallets, setWallets] = useState([]);
   const [query, setQuery] = useState('');
   const [timeframe, setTimeframe] = useState('month'); // 'month' | 'week' | 'day'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'expense' | 'income'
+  const [walletFilter, setWalletFilter] = useState(() => searchParams.get('wallet') || 'all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [activePreset, setActivePreset] = useState('all'); // 'all' | '7d' | '30d' | 'month' | 'payday' | 'custom'
@@ -92,6 +96,14 @@ export default function RekapanV37() {
   const [selected, setSelected] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const changeWalletFilter = (nextWalletId) => {
+    setWalletFilter(nextWalletId);
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextWalletId === 'all') nextParams.delete('wallet');
+    else nextParams.set('wallet', nextWalletId);
+    setSearchParams(nextParams, { replace: true });
+  };
 
   const applyDatePreset = (preset) => {
     const now = new Date();
@@ -149,7 +161,7 @@ export default function RekapanV37() {
   // Reset to first page when filtering or searching
   useEffect(() => {
     setPage(1);
-  }, [query, timeframe, typeFilter, dateFrom, dateTo]);
+  }, [query, timeframe, typeFilter, walletFilter, dateFrom, dateTo]);
 
   const effectiveRange = useMemo(() => {
     if (dateFrom && dateTo && dateFrom > dateTo) {
@@ -164,6 +176,7 @@ export default function RekapanV37() {
       const isIncome = tx.categories?.type === 'income';
       if (typeFilter === 'income' && !isIncome) return false;
       if (typeFilter === 'expense' && isIncome) return false;
+      if (walletFilter !== 'all' && String(tx.wallet_id) !== String(walletFilter)) return false;
 
       if (effectiveRange.from && tx.transaction_date < effectiveRange.from) return false;
       if (effectiveRange.to && tx.transaction_date > effectiveRange.to) return false;
@@ -176,7 +189,7 @@ export default function RekapanV37() {
         (tx.tags || []).some((tag) => String(tag).toLowerCase().includes(term))
       );
     });
-  }, [transactions, query, typeFilter, effectiveRange]);
+  }, [transactions, query, typeFilter, walletFilter, effectiveRange]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
@@ -485,32 +498,49 @@ export default function RekapanV37() {
               </div>
             </div>
 
-            {/* Jenis filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Filter size={14} />
-                <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Jenis</span>
+            {/* Jenis & Dompet filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <Filter size={14} />
+                  <span className="text-[10px] uppercase tracking-[0.16em] font-semibold">Jenis</span>
+                </div>
+                <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
+                  {[
+                    { key: 'all', label: 'Semua' },
+                    { key: 'expense', label: 'Pengeluaran' },
+                    { key: 'income', label: 'Pemasukan' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setTypeFilter(tab.key)}
+                      className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
+                        typeFilter === tab.key
+                          ? 'liquid-primary text-white shadow-sm'
+                          : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-3 sm:inline-flex liquid-nav-pill rounded-2xl p-1 gap-1">
-                {[
-                  { key: 'all', label: 'Semua' },
-                  { key: 'expense', label: 'Pengeluaran' },
-                  { key: 'income', label: 'Pemasukan' },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setTypeFilter(tab.key)}
-                    className={`px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all text-center ${
-                      typeFilter === tab.key
-                        ? 'liquid-primary text-white shadow-sm'
-                        : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+
+              <label className="flex items-center gap-2 liquid-nav-pill rounded-2xl px-3.5 py-2 sm:py-1.5">
+                <WalletCards size={14} className="text-slate-400 shrink-0" />
+                <select
+                  value={walletFilter}
+                  onChange={(e) => changeWalletFilter(e.target.value)}
+                  className="w-full sm:w-auto text-xs font-semibold bg-transparent border-0 p-0 outline-none shadow-none cursor-pointer"
+                  aria-label="Filter berdasarkan dompet"
+                >
+                  <option value="all">Semua Dompet</option>
+                  {wallets.map((w) => (
+                    <option key={w.id} value={String(w.id)}>{w.name}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
 

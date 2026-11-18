@@ -71,7 +71,6 @@ export default function ForecastV33() {
     <main className="min-h-screen pb-32 md:pb-16 pt-8 md:pt-32 text-slate-900 dark:text-slate-100">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         <header className="mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 mb-5"><ArrowLeft size={15} /> Dashboard</Link>
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-300 mb-2"><TrendingUp size={16} /><span className="text-[10px] uppercase tracking-[0.16em] font-medium">Lar Finance V3.3</span></div>
           <h1 className="text-[2rem] md:text-[2.8rem] leading-tight font-semibold tracking-[-0.045em]">Financial Forecasting</h1>
           <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 mt-2 max-w-3xl leading-relaxed">Bukan prediksi AI acak. Angka di bawah dihitung dari transaksi aktual, ritme harian, saldo dompet bulan ini termasuk hasil rekonsiliasi, budget, tagihan yang belum terbayar, dan recurring yang belum dicatat.</p>

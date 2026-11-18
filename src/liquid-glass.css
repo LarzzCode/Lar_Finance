@@ -296,3 +296,7 @@ html.dark {
     word-break: keep-all !important;
   }
 }
+
+.lf-subroute-shell > main {
+  padding-top: 1.25rem !important;
+}
